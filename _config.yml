@@ -1,0 +1,40 @@
+title: ROB 474/574 Docs
+description: Documentation and lab instructions for ROB 474/574
+
+# Build settings
+plugins:
+  - jekyll-remote-theme
+  - jekyll-last-modified-at
+
+remote_theme: just-the-docs/just-the-docs@v0.6.1
+
+last_modified_at: true
+
+logo: "/assets/images/robotics-logo.svg"
+math: katex
+url: "https://rob474-docs.github.io"
+
+callouts_level: quiet # or loud
+callouts:
+  highlight:
+    title: Highlight
+    color: yellow
+  important:
+    title: Important
+    color: blue
+  new:
+    title: New
+    color: green
+  note:
+    title: Note
+    color: purple
+  warning:
+    title: Warning
+    color: red
+  sanity_check:
+    title: Sanity Check
+    color: brown
+  required_for_report:
+    title: Required For the Report
+    color: cyan
+    opacity: 0.05
