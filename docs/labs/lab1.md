@@ -53,7 +53,12 @@ You will repeat this characterization across a test matrix of propeller diameter
 
 **Reference:** Quan Quan, *Introduction to Multicopter Design and Control*, Sections 6.1.3 (Single Propeller Thrust and Moment Model) and 6.1.4 (Propulsor Model).
 
-<!-- TODO(figure): add the dynamometer setup photograph to assets/images/labs/ and reference it here. -->
+<a href="{{ '/assets/images/labs/Dynamometer_Setup.png' | relative_url }}" class="image-link">
+  <img src="{{ '/assets/images/labs/Dynamometer_Setup.png' | relative_url }}" alt="Annotated photograph of the dynamometer test stand" />
+</a>
+
+**Figure 1.** The dynamometer test stand. The DAQ / power supply board carries the load cell instrumentation and feeds bus power to the ESC, which drives the BLDC motor from the PWM throttle command. Thrust and reaction torque are transmitted from the motor mount into the two load cells. *Click any figure to enlarge.*
+{: .fs-3 .text-grey-dk-000 }
 
 ### 1.1 Thrust, Torque, and Shaft Speed
 
@@ -98,8 +103,22 @@ where $$\sigma$$ is the throttle command and $$C_R$$ and $$\omega_b$$ are consta
 
 The test stand — and, later, your flight controller — commands motor speed by sending the ESC an electrical pulse whose width is varied, repeated at a fixed frame rate (classically every 20 ms, i.e. 50 Hz). The pulse itself lasts between 1000 $$\mu\text{s}$$ (1 ms) and 2000 $$\mu\text{s}$$ (2 ms). Setting the pulse width within this range is what ultimately sets motor speed, via the ESC's internal commutation logic. Wider pulse, higher commanded speed.
 
+<a href="{{ '/assets/images/labs/ESC_PWM.png' | relative_url }}" class="image-link">
+  <img src="{{ '/assets/images/labs/ESC_PWM.png' | relative_url }}" alt="Servo PWM signal showing a 20 ms frame period and a 1000-2000 microsecond pulse width driving an ESC" />
+</a>
+
+**Figure 2.** The Servo PWM standard. The ESC receives a pulse train at a fixed 20 ms frame period (50 Hz), and commanded motor speed is set by the *width* of each pulse, between 1000 and 2000 $$\mu\text{s}$$. That pulse width is the throttle command $$\sigma$$ in Equation (6).
+{: .fs-3 .text-grey-dk-000 }
+
 {: .note }
 > A constant pulse width is a constant speed command. Three different signals can each be perfectly steady and still command three different speeds — what distinguishes them is pulse *width*, not pulse rate.
+
+<a href="{{ '/assets/images/labs/ESC_PWM2.png' | relative_url }}" class="image-link">
+  <img src="{{ '/assets/images/labs/ESC_PWM2.png' | relative_url }}" alt="Three PWM signals A, B and C with different pulse widths mapping to three different constant motor speeds" />
+</a>
+
+**Figure 3.** Three steady throttle commands (A, B, C) sharing the same 20 ms frame period. All three are perfectly constant signals; they differ only in pulse width, and each settles the motor to a different constant $$\omega_\text{ss}$$. Frame rate does not set speed — pulse width does.
+{: .fs-3 .text-grey-dk-000 }
 
 ### 1.4 Throttle Response Dynamics
 
@@ -116,6 +135,13 @@ $$\omega(t) = \omega_\text{ss} + (\omega_0 - \omega_\text{ss})\,e^{-t/T_m} \tag{
 so $$T_m$$ is the time required to traverse **63.2 %** ($$1 - e^{-1}$$) of the *change* in speed:
 
 $$\omega(T_m) = \omega_0 + 0.632\,(\omega_\text{ss} - \omega_0) \tag{7b}$$
+
+<a href="{{ '/assets/images/labs/Motor_Step_Response.png' | relative_url }}" class="image-link">
+  <img src="{{ '/assets/images/labs/Motor_Step_Response.png' | relative_url }}" alt="First-order step response of motor speed showing the time constant at 63.2 percent of steady-state speed" />
+</a>
+
+**Figure 4.** Idealized first-order step response, Equation (7a). The time constant $$T_m$$ is the time taken to traverse 63.2 % of the change in speed. Note that this figure shows a step **from rest** ($$\omega_0 = 0$$), which is why the 63.2 % line is drawn at $$0.632\,\omega_\text{ss}$$. Your step tests will start from a nonzero idle speed, so use Equation (7b) rather than reading the value off directly.
+{: .fs-3 .text-grey-dk-000 }
 
 {: .warning }
 > A common error is to read $$T_m$$ off the plot at the instant where $$\omega = 0.632\,\omega_\text{ss}$$. That shortcut is only correct if the step starts from rest ($$\omega_0 = 0$$). Since your motor will already be spinning at the idle or minimum-throttle speed when the step is applied, you must use the general form in Equation (7b) or you will systematically underestimate $$T_m$$.
