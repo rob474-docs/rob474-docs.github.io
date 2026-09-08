@@ -9,13 +9,13 @@ last_modified_at: 2026-09-01 12:00:00 -0400
 # Lab 2: PX4 Flight Controller Software Setup and Basic Tuning
 
 **Course:** Uncrewed Aerial Systems  
-**Prerequisites:** Lab 1 (Dynamometer Characterization), basic familiarity with Linux terminal  
+**Prerequisites:** Lab 1 (Dynamometer Characterization), a vehicle built per the [Assembly Instructions]({% link docs/assembly_instructions.md %}) with a radio link set up per [Radio Configuration]({% link docs/radio_configuration.md %}), basic familiarity with Linux terminal  
 **Estimated Time:** 3 hours  
 **Hardware Required:**
-- Custom quadrotor with MicoAir743v2 AIO flight controller running PX4
+- Custom quadrotor with MicoAir743v2 AIO flight controller running PX4, assembled per the [Assembly Instructions]({% link docs/assembly_instructions.md %})
 - USB-C cable
-- RC transmitter and receiver (bound and ready)
-- Battery (for ESC calibration and motor testing)
+- RC transmitter and receiver, flashed and bound per [Radio Configuration]({% link docs/radio_configuration.md %})
+- 2S LiPo battery (for ESC calibration and motor testing)
 - Personal laptop with USB port
 
 ---
@@ -23,6 +23,8 @@ last_modified_at: 2026-09-01 12:00:00 -0400
 ## Overview
 
 In this lab you will configure a PX4-based quadrotor from a fresh firmware state to a flight-ready system. You will set up the PX4 development toolchain, build firmware from source, flash it to the flight controller, step through all mandatory calibrations, and configure flight modes.
+
+This lab is the third stage of bringing up the vehicle. It assumes the airframe is already built and wired ([Assembly Instructions]({% link docs/assembly_instructions.md %})) and that the ExpressLRS transmitter and receiver are already flashed and bound ([Radio Configuration]({% link docs/radio_configuration.md %})). Platform-specific values — motor geometry, battery calibration constants, and the port assignments referenced throughout — are collected in [Appendix A of the Assembly Instructions]({% link docs/assembly_instructions.md %}#appendix-a-platform-parameter-reference).
 
 By the end of this lab your drone will be ready for its first autonomous hover test in Lab 3.
 
@@ -257,6 +259,8 @@ If the flight controller is not mounted in the default orientation (arrow pointi
 
 This platform uses ExpressLRS (ELRS) for both RC control and MAVLink telemetry. Before calibrating the radio, configure PX4 to send MAVLink data over the TELEM1 port (wired to the ELRS receiver).
 
+> The transmitter, backpack, and receiver must already be flashed and bound, with **Link Mode: MAVLink** set on the radio, before the parameters below will produce a telemetry stream. See [Radio Configuration]({% link docs/radio_configuration.md %}).
+
 **Reference:** [https://www.expresslrs.org/software/mavlink/#configuring-elrs-tx-rx-for-mavlink](https://www.expresslrs.org/software/mavlink/#configuring-elrs-tx-rx-for-mavlink)
 
 ### 8.1 Configure MAVLink over ELRS
@@ -363,9 +367,9 @@ Refer to the PX4 X-frame motor spin convention:
 ## Part 11: Battery and Power Setup
 
 1. Go to **Vehicle Setup → Power**.
-2. Set **Number of Cells** to match your battery (typically 4S = 4 cells for a quadrotor of this class).
+2. Set **Number of Cells (in series)** to **2** — this platform flies a 2S LiPo.
 3. Set **Full Voltage (per cell):** 4.20 V  
-   **Empty Voltage (per cell):** 3.50 V
+   **Empty Voltage (per cell):** 3.20 V
 4. If you have a current sensor, calibrate it by entering the measured shunt resistance. For the MicoAir743v2 onboard sensor, use the value specified in the MicoAir documentation.
 5. Set a **Low Battery Warning** at ~20% and **Critical Battery Failsafe** at ~10% to trigger a land-in-place action (since this platform has no GPS, Return to Launch is not available).
 
