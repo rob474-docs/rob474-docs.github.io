@@ -75,9 +75,15 @@ The PX4 toolchain lets you build firmware from source and flash it directly to t
    ```bash
    mkdir ~/uas
    cd ~/uas
-   git clone https://github.com/PX4/PX4-Autopilot.git --recursive
+   git clone --branch v1.17.0 --recursive https://github.com/PX4/PX4-Autopilot.git
    ```
-   The `--recursive` flag is required — PX4 uses many git submodules. This download is large (~2 GB) and may take several minutes.
+   The `--recursive` flag is required — PX4 uses many git submodules. This download is large (~3 GB) and may take several minutes. `--branch v1.17.0` pins you to the PX4 release this course is built around; the Lab 3 controller template targets this version, and cloning `main` instead will get you whatever PX4 is working on that day.
+
+   > If the download is interrupted or a submodule fails, do not delete and re-clone. Resume it with:
+   > ```bash
+   > cd ~/uas/PX4-Autopilot
+   > git submodule update --init --recursive
+   > ```
 
 2. Run the Ubuntu setup script to install all required dependencies (compilers, udev rules, Python packages):
    ```bash
@@ -184,6 +190,8 @@ With the PX4 bootloader installed, you can now build firmware from source and fl
 ---
 
 ## Part 5: Connect to the Flight Controller
+
+> **The SD card is not optional on this board.** The MicoAir743v2 has no onboard parameter memory: every setting and calibration you make in this lab is stored in `/fs/microsd/params` on the SD card. A missing, corrupted, or half-written card means the vehicle boots with factory defaults — no calibration, no motor map, no flight modes — and PX4 plays the error tune. Two habits prevent this: **disarm and wait a few seconds before disconnecting the battery** (the logger and parameter writer are still flushing), and **back up your parameters** once everything works (**Vehicle Setup → Parameters → Tools → Save to file**). If the vehicle ever boots "uncalibrated" after it was fine, suspect the card before you recalibrate anything: `ls /fs/microsd` in the MAVLink Console should list clean filenames, and `param status` should say `file: /fs/microsd/params`.
 
 1. Plug the MicoAir743v2 into your laptop with a USB-C cable.
 
@@ -448,6 +456,7 @@ PX4 requires all pre-arm checks to pass before it will allow arming.
 | `RC not calibrated` | Repeat Part 8.2 |
 | `No RC signal` | Check transmitter is on and bound |
 | `GPS not locked` | This platform has no GPS — disable GPS requirement (see step 3) |
+| Several checks fail at once after a reboot that used to be clean | Parameters did not load — see the SD card note in Part 5. Reload your saved parameter file |
 
 3. Disable the GPS pre-arm check since this platform has no GPS. In **Vehicle Setup → Parameters**, set `EKF2_GPS_CTRL` = 0. On older PX4 firmware the equivalent parameter is `COM_ARM_WO_GPS` = 1.
 
