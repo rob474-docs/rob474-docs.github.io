@@ -84,13 +84,23 @@ Skip this and the loop works only while the vehicle points north; yaw it 90° an
 
 Clamp both to `±_max_tilt` (`UAS_MAX_TILT`). Start with **P only** and a small gain; a velocity loop that commands 20° for a 1 m/s error is already aggressive. Add D (on measured velocity, not error — same argument as the rate loop) if it overshoots, and a little I only if it settles with a steady drift. Respect `velocity_valid`: the template's guard commands level and resets when the estimate is not trusted. Keep it.
 
-### 1.4 What the sticks do now
+### 1.4 A switch for the loops, and what the sticks do now
 
-With `UAS_LOOP_EN = 15` the roll/pitch sticks command **velocity in the heading frame**, up to `UAS_MAX_VXY` (default 1 m/s) at full deflection; the module rotates that into NED for you. Sticks centred means zero velocity — the loop actively stops the vehicle. Throttle and yaw sticks are unchanged from Lab 3.
+PX4 has exactly one Offboard mode, so there is no second flight-mode slot for "Offboard with the velocity loop". Instead, put your spare 3-position switch to work: map it to an AUX channel (`RC_MAP_AUX1` = its channel number, found the same way as in Lab 2) and set `UAS_LOOP_SW = 1`. The mode switch still selects Offboard / Stabilized / Altitude; the spare switch selects how much of your cascade runs while in Offboard:
+
+| Switch | Loops | `UAS_LOOP_EN` equivalent |
+|---|---|---|
+| down | rate + attitude | 3 |
+| centre | + altitude | 7 |
+| up | + velocity | 15 |
+
+You can move it in flight. A loop switched on mid-air starts from the vehicle's current state (the altitude loop latches the current height, the velocity loop starts clean), so stepping up is smooth; stepping down hands you back the simpler behaviour instantly. This is the same switch the gain-tuning feature (`UAS_TUNE_SEL`) uses — leave that at 0 while the loop switch is on.
+
+With the velocity loop running, the roll/pitch sticks command **velocity in the heading frame**, up to `UAS_MAX_VXY` (default 1 m/s) at full deflection; the module rotates that into NED for you. Sticks centred means zero velocity — the loop actively stops the vehicle. Throttle and yaw sticks are unchanged from Lab 3.
 
 ### 1.5 Bench Test
 
-Props off, `UAS_LOOP_EN = 15`, arm in Offboard, sticks centred. The velocity setpoint is zero, so any velocity you impose by hand should produce a tilt command *opposing* it.
+Props off, loop switch **up** (or `UAS_LOOP_EN = 15`), arm in Offboard, sticks centred. The velocity setpoint is zero, so any velocity you impose by hand should produce a tilt command *opposing* it.
 
 1. `uas_control status` — confirm `velocity … valid: yes`. If it is `NO` on the bench that is normal (no flow on a static floor at 5 cm); lift the vehicle to ~0.5 m over a textured surface and it should come good within a second. Do the rest of the test at that height.
 2. Carry the vehicle **forward** at walking pace, pointed north: `listener vehicle_attitude_setpoint` (or the log) should show a **nose-up** (positive pitch) command — the loop trying to slow you down.
@@ -99,7 +109,7 @@ Props off, `UAS_LOOP_EN = 15`, arm in Offboard, sticks centred. The velocity set
 
 ### 1.6 Flight Test
 
-Take off in Stabilized, hand over at a hover as in Lab 3, with `UAS_LOOP_EN = 7` — confirm it still behaves. Land, set `UAS_LOOP_EN = 15`, and go again.
+Take off in Stabilized, hand over at a hover as in Lab 3 with the loop switch at **centre** (altitude) — confirm it still behaves. Then, in the hover, move the switch **up**.
 
 - **Sticks centred:** the Lab 3 drift should stop. Expect a gentle correction as the loop catches the initial velocity, then a hover that stays within a metre or so, wandering slowly as the flow estimate breathes.
 - **A slow, growing sway** (period of a few seconds) is the classic velocity-loop failure: too much P for the lag in the estimate. Halve it. Flip to Stabilized if it grows past a couple of metres of travel.
@@ -147,4 +157,4 @@ From one flight: `vx`/`vy` setpoint against measured, the roll/pitch commands th
 | Vehicle accelerates away when the loop is enabled | Velocity estimate sign wrong, or tilt sign wrong in your controller | Part 1.2 first (`SENS_FLOW_ROT`), then the signs in 1.3 |
 | Corrects sideways when yawed | Missing body-frame rotation | Part 1.3 Step 1 |
 | Slow growing sway | Velocity P too high for the estimate's lag | Halve `UAS_VEL_P` |
-| Sticks do nothing in velocity mode | `UAS_MAX_VXY` tiny, or loop not enabled | Check `UAS_LOOP_EN` has bit 3 set (15) |
+| Sticks do nothing in velocity mode | `UAS_MAX_VXY` tiny, or loop not enabled | `uas_control status` should say `loops enabled: 0x0f`; check the switch is up and `UAS_LOOP_SW` names its AUX channel |

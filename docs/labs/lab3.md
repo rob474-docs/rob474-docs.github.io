@@ -451,7 +451,7 @@ What it does *not* protect against: a controller that is alive and confidently w
 
 ### 9.3 Progression
 
-Fly in this order, one step per flight, landing between each.
+Fly in this order, one step per flight, landing between each. (If you have a spare 3-position switch, `UAS_LOOP_SW` lets it select these three configurations in flight — see Lab 4 Part 1.4 — but for the first flights, one configuration per flight, set as a parameter, is the discipline.)
 
 **Take off in Stabilized every time.** Get to a stable hover on PX4's controller first, then flip to Offboard to hand over to your code. Do not take off in your own mode — an untested controller is hardest to survive in exactly the moment you have the least altitude to recover in. Flip back to Stabilized to land.
 
