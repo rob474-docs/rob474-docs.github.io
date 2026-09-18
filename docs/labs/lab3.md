@@ -309,6 +309,8 @@ Implement all three axes in `RateController::update()`. The header documents wha
 
 - **Anti-windup.** Clamp the integral to `_integral_limit`. Without it, holding a stick against a limit accumulates integral state that takes seconds to unwind, and the vehicle keeps rotating after you center the stick.
 - **Derivative kick.** Differentiating the *error* spikes whenever the setpoint jumps. Differentiating the *measurement* does not. Pick one deliberately.
+- **Derivative noise.** The gyro updates at 667 Hz and a raw finite difference of it is mostly noise, which `_kd` amplifies straight into the motors. Low-pass the derivative — a first-order filter with a ~30 Hz cutoff, as covered in lecture — before you multiply by the gain.
+- **The shipped gains are P-only.** `UAS_RAT_RP_I` and `UAS_RAT_RP_D` default to zero. With P alone the vehicle is stable but visibly buzzy; adding D and then I is your tuning exercise in 6.4, not something to do blind at the desk.
 - **Yaw is different.** Yaw torque comes from motor drag, not thrust differential — far less authority than roll and pitch. It needs its own gains, which is why `_kp_yaw` is separate.
 - **`reset()` matters.** It runs on disarm and mode entry. Stale integral state produces a lurch on re-arm.
 
@@ -332,7 +334,7 @@ The props-off checks above prove the *sign* of your loop. They cannot tell you w
 2. While on the stand set `EKF2_OF_CTRL = 0`. The optical-flow velocity check will otherwise refuse to arm while the airframe is moving. **Restore to 1 before Part 8** — the altitude loop and any free flight depend on it.
 3. `UAS_LOOP_EN = 1`. Arm in Stabilized, bring the throttle to roughly hover (40–50 %), flip to Offboard. **Keep the throttle there until you are done.** Torque authority is proportional to thrust: at zero throttle the controller can request whatever it likes and nothing happens, and the vehicle becomes a pendulum on the stand.
 4. Step the stick and hold; release; repeat in both directions. Then pull the log and plot rate setpoint against gyro. You are looking at rise time, overshoot, and whether the measured rate settles *on* the setpoint (integral) or just near it.
-5. Tune here, not in the air: `UAS_RAT_RP_P` up until it buzzes then back off ~30 %, `UAS_RAT_RP_D` to kill overshoot, a little `UAS_RAT_RP_I` for the last bit of steady-state error. Parameters change live; nothing needs a reflash.
+5. Tune here, not in the air, one gain at a time, logging every run. The shipped P-only gains should give a light, visible oscillation. Add `UAS_RAT_RP_D` until it is gone (too much D and a faster, rougher buzz from gyro noise appears instead — that is your filter cutoff talking). Then a little `UAS_RAT_RP_I` for the last bit of steady-state error; watch for the slow wander that means too much. Parameters change live; nothing needs a reflash.
 
 Roll and pitch share gains because the airframe is symmetric — and on the stand, with the cable off, they should look nearly identical. If one axis needs very different gains from the other, suspect the mounting before the airframe.
 
