@@ -98,6 +98,8 @@ PX4 has exactly one Offboard mode, so there is no second flight-mode slot for "O
 
 You can move it in flight. A loop switched on mid-air starts from the vehicle's current state (the altitude loop latches the current height, the velocity loop starts clean), so stepping up is smooth; stepping down hands you back the simpler behaviour instantly. This is the same switch the gain-tuning feature (`UAS_TUNE_SEL`) uses — leave that at 0 while the loop switch is on.
 
+**When there is no velocity estimate the loop steps itself down.** Whenever `velocity_valid` is false — on the ground, where the flow sees nothing at 5 cm; over a bad patch of floor; too high — the module drops the velocity (and position) loop and the sticks go back to commanding tilt, exactly as in the centre position. QGC shows `no flow estimate, sticks are tilt`, and `flow valid, velocity/position loops on` when it returns. Two consequences: you can **arm and take off with the switch up** — it is an attitude/altitude take-off until the flow comes good at about 0.5 m, then the velocity loop takes over — and a stick you are holding for *velocity* becomes, for the duration of a dropout, a *tilt* of the same fraction. Centre the sticks when you hear the message.
+
 With the velocity loop running, the roll/pitch sticks command **velocity in the heading frame**, up to `UAS_MAX_VXY` (default 1 m/s) at full deflection; the module rotates that into NED for you. Sticks centred means zero velocity — the loop actively stops the vehicle. Throttle and yaw sticks are unchanged from Lab 3.
 
 ### 1.5 Bench Test
@@ -118,7 +120,7 @@ Take off in Stabilized, hand over at a hover as in Lab 3 with the loop switch at
 - **Stick inputs** should feel like steering a velocity: push forward, it accelerates to a speed and holds it; release, it stops.
 - **Unlearn the attitude-mode reflex.** In attitude mode you stop a drift by tilting against it — stick opposite the motion. In velocity mode that same stick means "go the other way at up to `UAS_MAX_VXY`", and the vehicle will. **Centring the stick is the brake.** The first velocity-loop flight on the instructor's vehicle "zoomed off" for exactly this reason: a backward drift, a stick pushed back, and a loop faithfully delivering −1 m/s.
 - **Gains that are too soft feel like no loop at all.** A P gain of 0.12 rad per m/s answers a 0.25 m/s drift with 1.5° of tilt — you will not notice it working. PX4 flies this airframe at `MPC_XY_VEL_P_ACC` = 1.8 m/s² per m/s, which is 0.18 rad per m/s once you divide by *g*, with an integrator ten times larger than instinct suggests. Convert PX4's gains before deciding yours are wrong.
-- **Over a bad patch of floor** `velocity_valid` will drop and the loop will command level and hand you an attitude-hold vehicle for a moment. Learn what that looks like.
+- **Over a bad patch of floor** `velocity_valid` will drop and the module hands you an attitude-hold vehicle (sticks are tilt) until it returns — see 1.4. Learn what that looks like.
 
 ### 1.7 Deliverable
 
@@ -162,3 +164,5 @@ From one flight: `vx`/`vy` setpoint against measured, the roll/pitch commands th
 | Corrects sideways when yawed | Missing body-frame rotation | Part 1.3 Step 1 |
 | Slow growing sway | Velocity P too high for the estimate's lag | Halve `UAS_VEL_P` |
 | Sticks do nothing in velocity mode | `UAS_MAX_VXY` tiny, or loop not enabled | `uas_control status` should say `loops enabled: 0x0f`; check the switch is up and `UAS_LOOP_SW` names its AUX channel |
+| Switch is up but `loops enabled` shows `0x07 (selected 0x0f)` | No velocity estimate, module stepped down | Normal on the ground and over bad floor (1.4). Lift to ~0.5 m over texture |
+| `rangefinder rejected … altitude on vz` in QGC | Rangefinder past its reach (outdoors, ~1.5 m over grass) or a large terrain step | Descend; the sample is re-accepted when it agrees again. Keep `UAS_MAX_ALT` at 1.5 m outdoors |

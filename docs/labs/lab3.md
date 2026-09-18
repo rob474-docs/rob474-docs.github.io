@@ -385,7 +385,7 @@ Before writing the loop, measure `UAS_HOVER_THR`. Hover in **Stabilized** for te
 - **Use `state.vz` for damping** rather than differentiating altitude. It is already filtered by EKF2 and far less noisy than a differentiated rangefinder signal.
 - **Watch the sign on `vz`.** It is NED, so positive means *descending*, while `altitude` is positive up. Getting this backwards converts your damping term into positive feedback. Reason it through on paper.
 - **Clamp thrust to something like [0.1, 0.9]**, not the full range. Commanding zero thrust in flight is a free fall with no control authority.
-- **Know where `state.altitude` comes from.** It is the downward rangefinder, tilt-compensated and lightly filtered — honest height above the floor, steady to a centimetre when the vehicle is sitting on its legs. It is *not* the EKF's `z`: on this airframe that has the barometer in it, sits a metre off the ground, and jumps on touchdown. If `altitude_valid` is false the module has no trustworthy height and you must hold hover thrust rather than close the loop.
+- **Know where `state.altitude` comes from.** It is height above the floor from the downward rangefinder, tilt-compensated — honest and steady to a centimetre when the vehicle is sitting on its legs — fused with the EKF's vertical velocity in a small complementary filter: `vz` carries the estimate between samples and through any stretch where the rangefinder stops making sense, the rangefinder trims it back. It is *not* the EKF's `z`: on this airframe that has the barometer in it, sits a metre off the ground, and jumps on touchdown. Why the fusion matters: the rangefinder reads to 8 m indoors but only to about 1.5 m over sunlit grass, and past its reach the readings flatten while the vehicle keeps going. An altitude loop that trusted them absolutely climbed the instructor's vehicle to 5 m. The module rejects a sample that disagrees with the prediction by more than `UAS_RNG_GATE`, and `UAS_MAX_ALT` (1.5 m) caps the target your stick can walk up to. If `altitude_valid` is false the module has no trustworthy height and you must hold hover thrust rather than close the loop.
 
 ### 8.3 Landing
 
@@ -428,6 +428,7 @@ Every one of these must hold:
 - [ ] Sign checks verified by hand on every axis
 - [ ] `UAS_MAX_TILT` and `UAS_MAX_RATE` set conservatively
 - [ ] `UAS_HOVER_THR` measured on *this* airframe with *this* battery
+- [ ] `UAS_MAX_ALT` at 1.5 m (outdoors: never higher — the rangefinder's reach over grass)
 - [ ] Kill switch tested this session
 - [ ] **Mode-switch handoff tested both directions this session** (Part 5.3 step 6)
 - [ ] `COM_OF_LOSS_T` and the offboard-loss action configured (Part 5.1)
