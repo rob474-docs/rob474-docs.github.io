@@ -64,7 +64,7 @@ A velocity loop closed on a wrong-signed estimate is positive feedback: the vehi
 
 If a sign is wrong, the usual culprit is the flow sensor's mounting orientation (`SENS_FLOW_ROT`), not your code. Fix it there; do not compensate in the controller.
 
-> **You may already have this data.** Any Lab 3 flight log with flow valid contains the check: a tilted quadrotor accelerates in the direction of the tilt, so the derivative of the flow velocity (rotated into the body frame by yaw) must track `−g·pitch` forward and `+g·roll` right. Plot the two against each other; a fitted slope near +1 on both axes means the signs and the scale are right. On the instructor's logs the slopes were 1.09 and 1.15.
+> **A trap, learned the hard way.** You might think any flight log proves the sign: the flow velocity should change in the direction the vehicle tilts. It does — *even when the sensor is mounted backwards* — because the EKF's velocity is driven by the accelerometers between flow updates, and that test only sees the accelerometers. The instructor's vehicle passed it with `SENS_FLOW_ROT` 180° wrong, and three flights "held velocity" in the log while sliding across the room. The check that catches it is the one above — push the vehicle and look at `vx`/`vy` — or, from a log, compare the *raw* flow against the EKF: in `estimator_aid_src_optical_flow`, the observation and the EKF's prediction (`observation + innovation`) must correlate **positively**; negative means reversed, and a rejection rate above ~30 % is the same symptom. A reversed flow also makes EKF2 re-align its heading mid-flight, which a yaw-hold loop will then chase — the instructor's crashed on a 196° reset.
 
 ### 1.3 Implement
 
