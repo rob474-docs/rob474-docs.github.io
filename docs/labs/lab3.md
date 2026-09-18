@@ -76,7 +76,7 @@ Two properties of this structure drive everything else in the lab:
 
 **Each loop assumes the one below it works.** The attitude loop commands a body rate and trusts that the rate loop achieves it. When you debug, always debug from the inside out. A "position hold doesn't work" bug is usually a rate or attitude bug.
 
-This is why you will implement and test the loops in that order, and why `SC_LOOP_EN` lets you enable them one at a time.
+This is why you will implement and test the loops in that order, and why `UAS_LOOP_EN` lets you enable them one at a time.
 
 ### 1.2 What Your Module Sees and Produces
 
@@ -115,11 +115,11 @@ The consequence that trips up nearly everyone: **z is positive downward.** A veh
 1. Clone the module template from the course GitLab server directly into your PX4 source tree:
    ```bash
    cd ~/uas/PX4-Autopilot/src/modules
-   git clone <GITLAB_URL>/student_control.git
+   git clone <GITLAB_URL>/uas_control.git
    ```
    <!-- TODO: replace <GITLAB_URL> with the course GitLab server address once it is finalized -->
 
-   > The module is its own git repository, separate from PX4-Autopilot. Commit your work to it as you go — `git status` inside `src/modules/student_control` shows only your files, not the rest of the PX4 tree — and push to GitLab regularly. Your source code deliverable at the end of this lab is this repository.
+   > The module is its own git repository, separate from PX4-Autopilot. Commit your work to it as you go — `git status` inside `src/modules/uas_control` shows only your files, not the rest of the PX4 tree — and push to GitLab regularly. Your source code deliverable at the end of this lab is this repository.
 
 2. Enable the module for your board. Open the board config:
    ```bash
@@ -127,7 +127,7 @@ The consequence that trips up nearly everyone: **z is positive downward.** A veh
    ```
    and add this line (keep the file alphabetically sorted if it already is):
    ```
-   CONFIG_MODULES_STUDENT_CONTROL=y
+   CONFIG_MODULES_UAS_CONTROL=y
    ```
 
 3. Start the module at boot. Open the startup script:
@@ -136,10 +136,10 @@ The consequence that trips up nearly everyone: **z is positive downward.** A veh
    ```
    and add near the other controller starts:
    ```
-   student_control start
+   uas_control start
    ```
 
-   > If you prefer to start it manually each session instead, skip this step and run `student_control start` from the MAVLink Console. Starting at boot is more convenient; starting manually makes it obvious when your module is and is not running.
+   > If you prefer to start it manually each session instead, skip this step and run `uas_control start` from the MAVLink Console. Starting at boot is more convenient; starting manually makes it obvious when your module is and is not running.
 
 4. Verify it builds:
    ```bash
@@ -163,24 +163,24 @@ The consequence that trips up nearly everyone: **z is positive downward.** A veh
 ## Part 3: Tour the Template
 
 ```
-src/modules/student_control/
-├── StudentControl.cpp/.hpp     <- module scaffolding. DO NOT EDIT.
+src/modules/uas_control/
+├── UasControl.cpp/.hpp     <- module scaffolding. DO NOT EDIT.
 ├── VehicleState.hpp            <- state/setpoint structs. Read this first.
 ├── RateController.cpp/.hpp     <- YOUR WORK (Part 6)
 ├── AttitudeController.cpp/.hpp <- YOUR WORK (Part 7)
 ├── AltitudeController.cpp/.hpp <- YOUR WORK (Part 8)
 ├── VelocityController.cpp/.hpp <- LAB 4. Leave stubbed.
 ├── PositionController.cpp/.hpp <- LAB 4. Leave stubbed.
-├── student_control_params.c    <- tunable parameters, exposed to QGC
+├── uas_control_params.c    <- tunable parameters, exposed to QGC
 ├── CMakeLists.txt
 └── Kconfig
 ```
 
-Read `VehicleState.hpp` first — it defines every variable you have access to and documents the units and frames. Then read `StudentControl.cpp` to see how the pieces are called, even though you will not edit it.
+Read `VehicleState.hpp` first — it defines every variable you have access to and documents the units and frames. Then read `UasControl.cpp` to see how the pieces are called, even though you will not edit it.
 
-**Parameters.** Every gain is a PX4 parameter with the `SC_` prefix, visible in QGC under **Vehicle Setup → Parameters**. You can retune live over the ELRS Backpack WiFi link (set up in [Radio Configuration, Part 5]({% link docs/radio_configuration.md %}#part-5-configure-the-link)) without reflashing. Reflashing takes minutes; changing a parameter takes seconds. Use the parameters.
+**Parameters.** Every gain is a PX4 parameter with the `UAS_` prefix, visible in QGC under **Vehicle Setup → Parameters**. You can retune live over the ELRS Backpack WiFi link (set up in [Radio Configuration, Part 5]({% link docs/radio_configuration.md %}#part-5-configure-the-link)) without reflashing. Reflashing takes minutes; changing a parameter takes seconds. Use the parameters.
 
-**`SC_LOOP_EN`** is a bitmask controlling which loops run. Build up from the inside out:
+**`UAS_LOOP_EN`** is a bitmask controlling which loops run. Build up from the inside out:
 
 | Value | Loops active | |
 |---|---|---|
@@ -190,13 +190,13 @@ Read `VehicleState.hpp` first — it defines every variable you have access to a
 | 15 | + velocity | Lab 4 |
 | 31 | Full cascade | Lab 4 |
 
-> Do not set `SC_LOOP_EN` above 7 in this lab. The velocity and position controllers are stubbed and return zero, so enabling them commands level flight and zero velocity regardless of your stick input — the vehicle will refuse to translate and you will spend an hour debugging a controller you have not written yet.
+> Do not set `UAS_LOOP_EN` above 7 in this lab. The velocity and position controllers are stubbed and return zero, so enabling them commands level flight and zero velocity regardless of your stick input — the vehicle will refuse to translate and you will spend an hour debugging a controller you have not written yet.
 
 ---
 
 ## Part 4: Assign Your Controller to the Mode Switch
 
-Your module activates on one `nav_state`: **Offboard** (`SC_MODE_SLOT` = 14).
+Your module activates on one `nav_state`: **Offboard** (`UAS_MODE_SLOT` = 14).
 
 1. In QGC, go to **Vehicle Setup → Flight Modes**.
 2. Using the mode channel you identified in [Lab 2 Part 8.3]({% link docs/labs/lab2.md %}#83-identify-switch-channels), set one switch position to **Offboard**.
@@ -249,18 +249,18 @@ Because your controller runs as an Offboard source, configure what PX4 does if t
 Then confirm the module is running:
 
 ```
-student_control status
+uas_control status
 ```
 
 If it is not running, start it:
 
 ```
-student_control start
+uas_control start
 ```
 
-> Two bench-test quirks worth knowing: **"Disarming denied: not landed"** — tilting an armed vehicle by hand can convince the land detector it is airborne, and the disarm switch is refused until it decides you have landed (a second or two). The kill switch does not care. And **the heartbeat stops the moment the module crashes**, so if `student_control status` ever says the module is not running after a mode switch, that is your code, not PX4.
+> Two bench-test quirks worth knowing: **"Disarming denied: not landed"** — tilting an armed vehicle by hand can convince the land detector it is airborne, and the disarm switch is refused until it decides you have landed (a second or two). The kill switch does not care. And **the heartbeat stops the moment the module crashes**, so if `uas_control status` ever says the module is not running after a mode switch, that is your code, not PX4.
 
-> **You do not need to stop `mc_rate_control` or `mc_att_control`.** They stand down on their own whenever Offboard is active — that is the whole point of Part 4.1. If you find yourself typing `mc_rate_control stop`, something else is wrong; go back and check `SC_MODE_SLOT` is 14 and that the heartbeat is publishing.
+> **You do not need to stop `mc_rate_control` or `mc_att_control`.** They stand down on their own whenever Offboard is active — that is the whole point of Part 4.1. If you find yourself typing `mc_rate_control stop`, something else is wrong; go back and check `UAS_MODE_SLOT` is 14 and that the heartbeat is publishing.
 
 ### 5.2 Watching Your Controller Work
 
@@ -268,7 +268,7 @@ Three tools, in increasing order of usefulness:
 
 **Module status** — a formatted snapshot of state and output:
 ```
-student_control status
+uas_control status
 ```
 
 **Live topic values** — raw uORB, updating:
@@ -284,14 +284,14 @@ That last one is your first stop whenever Offboard mode refuses to engage: confi
 
 ### 5.3 First Smoke Test
 
-With props off and `SC_LOOP_EN = 1`:
+With props off and `UAS_LOOP_EN = 1`:
 
 1. Confirm the heartbeat is alive: `listener offboard_control_mode` should show fresh messages with `thrust_and_torque: True`.
 2. Arm the vehicle, then flip the mode switch to **Offboard**.
-3. QGC's message bar (and the MAVLink Console) should show `student controller ENGAGED`.
-4. Run `student_control status`. Confirm attitude, rate, altitude, and velocity fields show plausible live values that respond when you tilt the airframe by hand.
+3. QGC's message bar (and the MAVLink Console) should show `uas_control ENGAGED`.
+4. Run `uas_control status`. Confirm attitude, rate, altitude, and velocity fields show plausible live values that respond when you tilt the airframe by hand.
 5. Motors should sit at idle and not respond to stick input — the rate controller is still stubbed and returns zero torque.
-6. **Test the handoff.** Flip back to Stabilized. You should see `student controller released`, and PX4's controller should take over — verify by tilting the airframe and watching `listener actuator_motors` respond. Flip to Offboard and back a few times. This is the abort path you will rely on for the rest of the lab; confirm it works before you need it.
+6. **Test the handoff.** Flip back to Stabilized. You should see `uas_control released`, and PX4's controller should take over — verify by tilting the airframe and watching `listener actuator_motors` respond. Flip to Offboard and back a few times. This is the abort path you will rely on for the rest of the lab; confirm it works before you need it.
 
 If you see live state values, `active: YES` in Offboard, and clean handoff in both directions, the plumbing works and everything from here is control math.
 
@@ -314,7 +314,7 @@ Implement all three axes in `RateController::update()`. The header documents wha
 
 ### 6.2 Bench Test
 
-Props off. `SC_LOOP_EN = 1`. Arm and flip to Offboard — the stock controllers stand down on their own (Part 4.1); do not stop them.
+Props off. `UAS_LOOP_EN = 1`. Arm and flip to Offboard — the stock controllers stand down on their own (Part 4.1); do not stop them.
 
 1. `listener vehicle_torque_setpoint` and move the sticks. Torque values should respond in the right direction and magnitude.
 2. **Verify sign by hand.** Hold the airframe and rotate it. Your controller should command torque *opposing* the rotation you impose. If it commands torque in the same direction, your sign is inverted — that is positive feedback and it will flip the vehicle instantly on a real flight.
@@ -330,9 +330,9 @@ The props-off checks above prove the *sign* of your loop. They cannot tell you w
 
 1. Mount the vehicle, props on, and **unplug the USB cable**. A tether drags on the free axis and completely corrupts the result — with a cable attached, one axis of this airframe needed five times the torque of the other and could not follow the stick. Use the ELRS wireless link for telemetry; plug USB back in only when disarmed, to pull the log.
 2. While on the stand set `EKF2_OF_CTRL = 0`. The optical-flow velocity check will otherwise refuse to arm while the airframe is moving. **Restore to 1 before Part 8** — the altitude loop and any free flight depend on it.
-3. `SC_LOOP_EN = 1`. Arm in Stabilized, bring the throttle to roughly hover (40–50 %), flip to Offboard. **Keep the throttle there until you are done.** Torque authority is proportional to thrust: at zero throttle the controller can request whatever it likes and nothing happens, and the vehicle becomes a pendulum on the stand.
+3. `UAS_LOOP_EN = 1`. Arm in Stabilized, bring the throttle to roughly hover (40–50 %), flip to Offboard. **Keep the throttle there until you are done.** Torque authority is proportional to thrust: at zero throttle the controller can request whatever it likes and nothing happens, and the vehicle becomes a pendulum on the stand.
 4. Step the stick and hold; release; repeat in both directions. Then pull the log and plot rate setpoint against gyro. You are looking at rise time, overshoot, and whether the measured rate settles *on* the setpoint (integral) or just near it.
-5. Tune here, not in the air: `SC_RAT_RP_P` up until it buzzes then back off ~30 %, `SC_RAT_RP_D` to kill overshoot, a little `SC_RAT_RP_I` for the last bit of steady-state error. Parameters change live; nothing needs a reflash.
+5. Tune here, not in the air: `UAS_RAT_RP_P` up until it buzzes then back off ~30 %, `UAS_RAT_RP_D` to kill overshoot, a little `UAS_RAT_RP_I` for the last bit of steady-state error. Parameters change live; nothing needs a reflash.
 
 Roll and pitch share gains because the airframe is symmetric — and on the stand, with the cable off, they should look nearly identical. If one axis needs very different gains from the other, suspect the mounting before the airframe.
 
@@ -353,7 +353,7 @@ Usually P-only. An integrator here fights the one in the rate loop and produces 
 
 ### 7.2 Bench Test
 
-`SC_LOOP_EN = 3`. Props off. Arm.
+`UAS_LOOP_EN = 3`. Props off. Arm.
 
 1. Tilt the airframe by hand and release. Commanded torque should act to restore level.
 2. Stick deflection should map to a tilt *angle* now, not a rate — hold the stick at half deflection and the commanded angle should hold steady rather than continuously integrating.
@@ -375,7 +375,7 @@ Independent of the roll/pitch/yaw cascade. Takes a height target, produces colle
 
 ### 8.1 Measure Hover Thrust First
 
-Before writing the loop, measure `SC_HOVER_THR`. Reboot to restore PX4's controller, hover in Altitude mode, and read back the commanded thrust. **Do not guess.** A controller whose output is zero at zero error commands zero thrust and the vehicle drops — the hover feedforward is what makes this loop work at all.
+Before writing the loop, measure `UAS_HOVER_THR`. Reboot to restore PX4's controller, hover in Altitude mode, and read back the commanded thrust. **Do not guess.** A controller whose output is zero at zero error commands zero thrust and the vehicle drops — the hover feedforward is what makes this loop work at all.
 
 ### 8.2 Implement
 
@@ -386,11 +386,11 @@ Before writing the loop, measure `SC_HOVER_THR`. Reboot to restore PX4's control
 
 ### 8.3 Bench Test
 
-Props off, `SC_LOOP_EN = 7`. You cannot test altitude hold on a bench, so verify what you can:
+Props off, `UAS_LOOP_EN = 7`. You cannot test altitude hold on a bench, so verify what you can:
 
 1. Confirm `altitude_valid` is true and `altitude` tracks height as you raise and lower the airframe by hand (this exercises the [Lab 2 Part 12]({% link docs/labs/lab2.md %}#part-12-configure-optical-flow) flow/rangefinder chain).
 2. Raise the airframe above its setpoint and confirm commanded thrust *decreases*; lower it and confirm thrust *increases*.
-3. Confirm thrust sits near `SC_HOVER_THR` at zero error.
+3. Confirm thrust sits near `UAS_HOVER_THR` at zero error.
 
 ### 8.4 Deliverable
 
@@ -407,10 +407,10 @@ Log plot showing altitude setpoint, measured altitude, and commanded thrust duri
 Every one of these must hold:
 
 - [ ] All bench tests in Parts 6–8 pass
-- [ ] `SC_LOOP_EN` is 7 or below (velocity/position are Lab 4)
+- [ ] `UAS_LOOP_EN` is 7 or below (velocity/position are Lab 4)
 - [ ] Sign checks verified by hand on every axis
-- [ ] `SC_MAX_TILT` and `SC_MAX_RATE` set conservatively
-- [ ] `SC_HOVER_THR` measured on *this* airframe with *this* battery
+- [ ] `UAS_MAX_TILT` and `UAS_MAX_RATE` set conservatively
+- [ ] `UAS_HOVER_THR` measured on *this* airframe with *this* battery
 - [ ] Kill switch tested this session
 - [ ] **Mode-switch handoff tested both directions this session** (Part 5.3 step 6)
 - [ ] `COM_OF_LOSS_T` and the offboard-loss action configured (Part 5.1)
@@ -438,9 +438,9 @@ Fly in this order, one step per flight, landing between each.
 
 **Take off in Stabilized every time.** Get to a stable hover on PX4's controller first, then flip to Offboard to hand over to your code. Do not take off in your own mode — an untested controller is hardest to survive in exactly the moment you have the least altitude to recover in. Flip back to Stabilized to land.
 
-1. `SC_LOOP_EN = 1` — rate only. Expect to work the sticks constantly; this is normal, rate mode has no self-leveling.
-2. `SC_LOOP_EN = 3` — add attitude. Release the sticks and the vehicle should self-level.
-3. `SC_LOOP_EN = 7` — add altitude. Release throttle and it should hold height.
+1. `UAS_LOOP_EN = 1` — rate only. Expect to work the sticks constantly; this is normal, rate mode has no self-leveling.
+2. `UAS_LOOP_EN = 3` — add attitude. Release the sticks and the vehicle should self-level.
+3. `UAS_LOOP_EN = 7` — add altitude. Release throttle and it should hold height.
 
 That is the end point for this lab. The vehicle will still drift horizontally with the sticks centered — nothing is closing a loop on horizontal velocity yet, so it holds attitude and height but not position. **This is correct behavior, not a bug.** Lab 4 fixes it.
 
@@ -452,8 +452,8 @@ Start conservative and increase. These oscillation signatures apply to any casca
 
 | Symptom | Likely cause | Response |
 |---|---|---|
-| Fast buzzy oscillation (>1 Hz) | Rate loop P or D too high | Reduce `SC_RAT_RP_P`, then `SC_RAT_RP_D` |
-| Slow wobble (≤1 Hz) | Attitude loop P too high | Reduce `SC_ATT_RP_P` |
+| Fast buzzy oscillation (>1 Hz) | Rate loop P or D too high | Reduce `UAS_RAT_RP_P`, then `UAS_RAT_RP_D` |
+| Slow wobble (≤1 Hz) | Attitude loop P too high | Reduce `UAS_ATT_RP_P` |
 | Sluggish, drifts before correcting | Gains too low | Increase P on the relevant loop |
 | Overshoots and settles slowly | Insufficient damping | Increase D on the rate loop |
 | Drifts steadily one direction | Missing or insufficient integral | Increase I on the relevant loop |
@@ -463,7 +463,7 @@ Start conservative and increase. These oscillation signatures apply to any casca
 
 ## Lab Deliverables
 
-1. **Source code:** your `student_control` repository pushed to GitLab, with completed `RateController.cpp`, `AttitudeController.cpp`, and `AltitudeController.cpp`.
+1. **Source code:** your `uas_control` repository pushed to GitLab, with completed `RateController.cpp`, `AttitudeController.cpp`, and `AltitudeController.cpp`.
 2. **Bench test evidence:** the plots from Parts 6.3, 7.3, and 8.4.
 3. **Flight log:** a `.ulg` from your best flight, with the loop configuration you reached noted.
 4. **Written analysis (2–3 pages):**
@@ -478,17 +478,17 @@ Start conservative and increase. These oscillation signatures apply to any casca
 
 | Symptom | Likely Cause | Fix |
 |---|---|---|
-| Module won't build | `CONFIG_MODULES_STUDENT_CONTROL=y` missing | Check `boards/micoair/h743-v2/default.px4board` (Part 2.2) |
+| Module won't build | `CONFIG_MODULES_UAS_CONTROL=y` missing | Check `boards/micoair/h743-v2/default.px4board` (Part 2.2) |
 | Build error on a uORB field name | PX4 API drift between versions | Check actual field names in `~/uas/PX4-Autopilot/msg/` |
-| `student_control: command not found` | Module not built into firmware | Rebuild and reflash after the board config change |
-| `active: no` while armed in your mode | Mode slot mismatch | Confirm `SC_MODE_SLOT` = 14 and the switch position is assigned to Offboard (Part 4) |
-| Motors don't respond, state looks fine | Rate loop not enabled | `SC_LOOP_EN` must have bit 0 set |
+| `uas_control: command not found` | Module not built into firmware | Rebuild and reflash after the board config change |
+| `active: no` while armed in your mode | Mode slot mismatch | Confirm `UAS_MODE_SLOT` = 14 and the switch position is assigned to Offboard (Part 4) |
+| Motors don't respond, state looks fine | Rate loop not enabled | `UAS_LOOP_EN` must have bit 0 set |
 | **Offboard mode won't engage / rejected** | Heartbeat not streaming before mode entry | `listener offboard_control_mode` — must be fresh with `thrust_and_torque: True`. Confirm the module is running |
 | Offboard engages then immediately drops out | Heartbeat too slow or module stalling | Check `COM_OF_LOSS_T`; look for a blocking call in your controller code |
 | Erratic motor output, fights itself | Two controllers publishing | Confirm you are in Offboard, not Acro or Stabilized. In Offboard, `mc_rate_control` stands down by itself — do not stop it manually |
-| Vehicle drops on mode entry | Thrust setpoint starting at zero | Check the throttle mapping and `SC_HOVER_THR`; enter Offboard from a stable hover, not from the ground |
+| Vehicle drops on mode entry | Thrust setpoint starting at zero | Check the throttle mapping and `UAS_HOVER_THR`; enter Offboard from a stable hover, not from the ground |
 | Vehicle rotates the wrong way | Sign inverted in a controller | Redo the hand sign check (Part 6.2 step 2) |
-| Won't translate, refuses stick input | `SC_LOOP_EN` above 7 with Lab 4 loops stubbed | Set `SC_LOOP_EN` to 7 or below |
+| Won't translate, refuses stick input | `UAS_LOOP_EN` above 7 with Lab 4 loops stubbed | Set `UAS_LOOP_EN` to 7 or below |
 | Drifts horizontally with sticks centered | Expected — no velocity loop in this lab | Not a bug (Part 9.3). Lab 4 addresses it |
 | Lurches on arm | Integrator state not cleared | Implement `reset()` in every controller |
 | NaN warning in console | Division by zero, likely `dt` | Check the dt guards; look for uninitialized state |
