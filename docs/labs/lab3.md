@@ -377,7 +377,7 @@ Independent of the roll/pitch/yaw cascade. Takes a height target, produces colle
 
 ### 8.1 Measure Hover Thrust First
 
-Before writing the loop, measure `UAS_HOVER_THR`. Reboot to restore PX4's controller, hover in Altitude mode, and read back the commanded thrust. **Do not guess.** A controller whose output is zero at zero error commands zero thrust and the vehicle drops — the hover feedforward is what makes this loop work at all.
+Before writing the loop, measure `UAS_HOVER_THR`. Hover in **Stabilized** for ten seconds or so, then read PX4's hover-thrust estimator out of the log: the `hover_thrust_estimate.hover_thrust` topic in Flight Review or PlotJuggler settles on a number within a few seconds of lift-off (0.49 on the instructor's airframe; yours will differ with battery and build). **Do not guess.** A controller whose output is zero at zero error commands zero thrust and the vehicle drops — the hover feedforward is what makes this loop work at all.
 
 ### 8.2 Implement
 
@@ -385,18 +385,33 @@ Before writing the loop, measure `UAS_HOVER_THR`. Reboot to restore PX4's contro
 - **Use `state.vz` for damping** rather than differentiating altitude. It is already filtered by EKF2 and far less noisy than a differentiated rangefinder signal.
 - **Watch the sign on `vz`.** It is NED, so positive means *descending*, while `altitude` is positive up. Getting this backwards converts your damping term into positive feedback. Reason it through on paper.
 - **Clamp thrust to something like [0.1, 0.9]**, not the full range. Commanding zero thrust in flight is a free fall with no control authority.
+- **Know where `state.altitude` comes from.** It is the downward rangefinder, tilt-compensated and lightly filtered — honest height above the floor, steady to a centimetre when the vehicle is sitting on its legs. It is *not* the EKF's `z`: on this airframe that has the barometer in it, sits a metre off the ground, and jumps on touchdown. If `altitude_valid` is false the module has no trustworthy height and you must hold hover thrust rather than close the loop.
 
-### 8.3 Bench Test
+### 8.3 Landing
+
+An altitude hold has a second job you will discover the first time you try to land in your own mode: **it does not know how to stop.** With the throttle stick at the bottom the module walks the altitude target down to 0 m and your loop dutifully holds the vehicle *on the floor* at roughly hover thrust. The land detector never sees a landing, and when you flip the arm switch PX4 answers `Disarming denied: not landed`. Your kill switch still works, but that is not a landing.
+
+The module tells you the pilot's intent: `sp.land` is true while the throttle stick is held at the bottom, and `setIdleThrust()` gives you PX4's motor-idle thrust (`MPC_MANTHR_MIN`). What to do about it is yours to write, in `update()`, after the normal loop:
+
+1. **Decide you are down.** `sp.land` *and* `state.altitude` below a small threshold — about 0.15 m; the rangefinder reads 0.05–0.10 m on the legs. Above that, a bottomed stick just means "descend" and the loop already handles it.
+2. **Hold the decision.** Once landing, stay landing until `sp.land` goes false, *whatever the altitude reads*. Without this hysteresis a height reading flickering around the threshold toggles the thrust between idle and hover a couple of times a second and the vehicle hops across the floor. (The instructor's airframe did exactly this.)
+3. **Ramp, don't cut.** Take the thrust from wherever it is to the idle value over about a second. Cutting it drops the vehicle the last 10–15 cm onto its legs.
+4. **Clear your integrator** while landing, or the next take-off inherits a trim learned while pinned to the floor.
+
+You will know it works when you can land in Offboard, see `Landing detected` in QGC, and disarm with the switch — without reaching for Stabilized or the kill switch.
+
+### 8.4 Bench Test
 
 Props off, `UAS_LOOP_EN = 7`. You cannot test altitude hold on a bench, so verify what you can:
 
 1. Confirm `altitude_valid` is true and `altitude` tracks height as you raise and lower the airframe by hand (this exercises the [Lab 2 Part 12]({% link docs/labs/lab2.md %}#part-12-configure-optical-flow) flow/rangefinder chain).
 2. Raise the airframe above its setpoint and confirm commanded thrust *decreases*; lower it and confirm thrust *increases*.
 3. Confirm thrust sits near `UAS_HOVER_THR` at zero error.
+4. **Landing logic, props off:** set the vehicle on the bench, arm in Offboard, throttle stick at the bottom. `uas_control status` should show the thrust ramping to idle within a second and staying there. Lift the vehicle a few centimetres by hand — it must *stay* at idle (hysteresis). Raise the stick and the loop should resume.
 
-### 8.4 Deliverable
+### 8.5 Deliverable
 
-Log plot showing altitude setpoint, measured altitude, and commanded thrust during the hand-raise test, with the sign relationship clearly visible.
+Log plot showing altitude setpoint, measured altitude, and commanded thrust during the hand-raise test, with the sign relationship clearly visible — and, from your first altitude-mode flight, the last ten seconds before disarm showing the thrust ramp to idle and the `Landing detected` moment.
 
 ---
 
@@ -442,7 +457,7 @@ Fly in this order, one step per flight, landing between each.
 
 1. `UAS_LOOP_EN = 1` — rate only. Expect to work the sticks constantly; this is normal, rate mode has no self-leveling.
 2. `UAS_LOOP_EN = 3` — add attitude. Release the sticks and the vehicle should self-level.
-3. `UAS_LOOP_EN = 7` — add altitude. Release throttle and it should hold height.
+3. `UAS_LOOP_EN = 7` — add altitude. Release throttle and it should hold height. Stick fully down descends; near the floor your landing logic (8.3) takes over and the disarm switch works — this is the one stage where landing in your own mode is expected.
 
 That is the end point for this lab. The vehicle will still drift horizontally with the sticks centered — nothing is closing a loop on horizontal velocity yet, so it holds attitude and height but not position. **This is correct behavior, not a bug.** Lab 4 fixes it.
 
@@ -466,7 +481,7 @@ Start conservative and increase. These oscillation signatures apply to any casca
 ## Lab Deliverables
 
 1. **Source code:** your `uas_control` repository pushed to GitLab, with completed `RateController.cpp`, `AttitudeController.cpp`, and `AltitudeController.cpp`.
-2. **Bench test evidence:** the plots from Parts 6.3, 7.3, and 8.4.
+2. **Bench test evidence:** the plots from Parts 6.3, 7.3, and 8.5.
 3. **Flight log:** a `.ulg` from your best flight, with the loop configuration you reached noted.
 4. **Written analysis (2–3 pages):**
    - Your gain relationship between the rate and attitude loops, and why cascaded loops have a natural bandwidth separation
@@ -493,4 +508,6 @@ Start conservative and increase. These oscillation signatures apply to any casca
 | Won't translate, refuses stick input | `UAS_LOOP_EN` above 7 with Lab 4 loops stubbed | Set `UAS_LOOP_EN` to 7 or below |
 | Drifts horizontally with sticks centered | Expected — no velocity loop in this lab | Not a bug (Part 9.3). Lab 4 addresses it |
 | Lurches on arm | Integrator state not cleared | Implement `reset()` in every controller |
+| `Disarming denied: not landed` after landing in Offboard | Altitude loop still holding hover thrust on the floor | Implement landing (Part 8.3); until then land in Stabilized. Kill switch always works |
+| Hops on the floor when landing | Landing decision toggling on a flickering height | Add hysteresis: once landing, stay landing until the stick comes up (Part 8.3) |
 | NaN warning in console | Division by zero, likely `dt` | Check the dt guards; look for uninitialized state |
