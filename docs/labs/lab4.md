@@ -64,6 +64,8 @@ A velocity loop closed on a wrong-signed estimate is positive feedback: the vehi
 
 If a sign is wrong, the usual culprit is the flow sensor's mounting orientation (`SENS_FLOW_ROT`), not your code. Fix it there; do not compensate in the controller.
 
+> **You may already have this data.** Any Lab 3 flight log with flow valid contains the check: a tilted quadrotor accelerates in the direction of the tilt, so the derivative of the flow velocity (rotated into the body frame by yaw) must track `−g·pitch` forward and `+g·roll` right. Plot the two against each other; a fitted slope near +1 on both axes means the signs and the scale are right. On the instructor's logs the slopes were 1.09 and 1.15.
+
 ### 1.3 Implement
 
 The template walks you through it in two steps.
@@ -114,6 +116,8 @@ Take off in Stabilized, hand over at a hover as in Lab 3 with the loop switch at
 - **Sticks centred:** the Lab 3 drift should stop. Expect a gentle correction as the loop catches the initial velocity, then a hover that stays within a metre or so, wandering slowly as the flow estimate breathes.
 - **A slow, growing sway** (period of a few seconds) is the classic velocity-loop failure: too much P for the lag in the estimate. Halve it. Flip to Stabilized if it grows past a couple of metres of travel.
 - **Stick inputs** should feel like steering a velocity: push forward, it accelerates to a speed and holds it; release, it stops.
+- **Unlearn the attitude-mode reflex.** In attitude mode you stop a drift by tilting against it — stick opposite the motion. In velocity mode that same stick means "go the other way at up to `UAS_MAX_VXY`", and the vehicle will. **Centring the stick is the brake.** The first velocity-loop flight on the instructor's vehicle "zoomed off" for exactly this reason: a backward drift, a stick pushed back, and a loop faithfully delivering −1 m/s.
+- **Gains that are too soft feel like no loop at all.** A P gain of 0.12 rad per m/s answers a 0.25 m/s drift with 1.5° of tilt — you will not notice it working. PX4 flies this airframe at `MPC_XY_VEL_P_ACC` = 1.8 m/s² per m/s, which is 0.18 rad per m/s once you divide by *g*, with an integrator ten times larger than instinct suggests. Convert PX4's gains before deciding yours are wrong.
 - **Over a bad patch of floor** `velocity_valid` will drop and the loop will command level and hand you an attitude-hold vehicle for a moment. Learn what that looks like.
 
 ### 1.7 Deliverable
