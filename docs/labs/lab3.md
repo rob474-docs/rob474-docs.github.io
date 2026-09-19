@@ -400,7 +400,7 @@ The module tells you the pilot's intent: `sp.land` is true while the throttle st
 
 You will know it works when you can land in Offboard, see `Landing detected` in QGC, and disarm with the switch — without reaching for Stabilized or the kill switch.
 
-> **Taking off is not your job.** The module handles it: on the ground in altitude mode the motors idle and your controller is not called; pushing the throttle above 60 % flies an automatic take-off (thrust ramped until lift-off, then a 0.4 m/s climb on the IMU alone) and hands your loop a hover at `UAS_TKO_ALT` (0.5 m), integrator reset. From then on the stick works as in flight. When PX4's land detector sees your landing complete, the module is back on the ground and the next throttle-up takes off again. Watch for `take-off to 0.50 m` and `take-off complete` in QGC.
+> **Taking off is not your job.** The module handles it: on the ground in altitude mode the motors idle and your controller is not called; pushing the throttle above 60 % flies an automatic take-off — thrust stepped to 1.12 × `UAS_HOVER_THR` until the rangefinder shows half of `UAS_TKO_ALT` — then hands your loop the vehicle with `UAS_TKO_ALT` (0.33 m) as its target and the integrator reset. **Centre the throttle**: it is ignored until you do, then it works as in flight. When PX4's land detector sees your landing complete, the module is back on the ground and the next throttle-up takes off again. Watch for `take-off to 0.33 m` and `airborne, target 0.33 m` in QGC. Why the rangefinder and not the EKF's `vz` here: at lift-off the barometer sits in the prop wash and `vz` has read 2 m/s *down* with the vehicle 10 cm up.
 
 ### 8.4 Bench Test
 
@@ -460,7 +460,7 @@ Fly in this order, one step per flight, landing between each. (If you have a spa
 
 1. `UAS_LOOP_EN = 1` — rate only. Expect to work the sticks constantly; this is normal, rate mode has no self-leveling.
 2. `UAS_LOOP_EN = 3` — add attitude. Release the sticks and the vehicle should self-level.
-3. `UAS_LOOP_EN = 7` — add altitude. Once the hover in step 2 is solid, **arm on the ground in Offboard** and push the throttle above 60 %: the module's automatic take-off (8.3) puts the vehicle in a hover at 0.5 m and hands it to your loop. Centre the throttle. Release it and it should hold height; push up or down and it climbs or descends at up to `UAS_MAX_VZ`, never above `UAS_MAX_ALT`. Stick fully down descends; near the floor your landing logic (8.3) takes over and the disarm switch works — take-off and landing in your own mode are both expected at this stage.
+3. `UAS_LOOP_EN = 7` — add altitude. Once the hover in step 2 is solid, **arm on the ground in Offboard** and push the throttle above 60 %: the module's automatic take-off (8.3) lifts the vehicle and hands it to your loop with 0.33 m as the target. Centre the throttle. It should settle and hold height; push up or down and it climbs or descends at up to `UAS_MAX_VZ`, never above `UAS_MAX_ALT`. Stick fully down descends; near the floor your landing logic (8.3) takes over and the disarm switch works — take-off and landing in your own mode are both expected at this stage.
 
 That is the end point for this lab. The vehicle will still drift horizontally with the sticks centered — nothing is closing a loop on horizontal velocity yet, so it holds attitude and height but not position. **This is correct behavior, not a bug.** Lab 4 fixes it.
 
