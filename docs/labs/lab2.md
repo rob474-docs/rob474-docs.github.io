@@ -479,58 +479,12 @@ PX4 requires all pre-arm checks to pass before it will allow arming.
 
 ---
 
-## Part 14: MAVProxy and pymavlink (Development Toolchain)
-
-In future labs you will write Python scripts to command the drone autonomously. Install the development tools now.
-
-```bash
-pip install pymavlink MAVProxy
-```
-
-### Verify Connection with MAVProxy
-
-```bash
-mavproxy.py --master=/dev/ttyACM0 --baudrate=57600 --console
-```
-
-You should see heartbeat messages and MAVLink traffic in the console. Type `status` to see vehicle state. Type `exit` to quit.
-
-### Verify with pymavlink (Python)
-
-```python
-from pymavlink import mavutil
-import time
-
-connection = mavutil.mavlink_connection('/dev/ttyACM0', baud=57600)
-connection.wait_heartbeat()
-print(f"Connected: system {connection.target_system}, component {connection.target_component}")
-
-connection.mav.request_data_stream_send(
-    connection.target_system,
-    connection.target_component,
-    mavutil.mavlink.MAV_DATA_STREAM_EXTRA1,
-    10,  # 10 Hz
-    1    # start
-)
-
-for _ in range(10):
-    msg = connection.recv_match(type='ATTITUDE', blocking=True, timeout=2)
-    if msg:
-        print(f"Roll: {msg.roll:.3f} rad  Pitch: {msg.pitch:.3f} rad  Yaw: {msg.yaw:.3f} rad")
-    time.sleep(0.1)
-```
-
-Save this as `verify_connection.py` and run it with `python3 verify_connection.py`. You should see live attitude data from the flight controller.
-
----
-
 ## Lab Deliverables
 
 Submit the following before the next lab session:
 
 1. **Screenshot** of QGC with all pre-arm checks passing (green status bar).
 2. **Screenshot** of the Sensors page showing all sensors calibrated (green checkmarks).
-3. **Python script output:** Paste the terminal output of `verify_connection.py` showing 10 lines of attitude data.
 
 ---
 
