@@ -317,10 +317,12 @@ Configure your RC transmitter switches to select PX4 flight modes.
 
 1. Go to **Vehicle Setup → Flight Modes**.
 2. Set **Mode Channel** to **Channel 6** (switch **SB** on the transmitter — 3-position).
-3. Set the three switch positions to:
-   - **Position 1 (up):** Stabilized (manual stabilized, good for learning)
-   - **Position 2 (center):** Altitude Control (holds altitude using barometer)
-   - **Position 3 (down):** Position Control (holds position using optical flow — requires optical flow setup in Part 12)
+3. PX4 divides the mode channel into **six** slots, and a 3-position switch lands on slot 1, on the *boundary between slots 3 and 4*, and on slot 6. Fill the slots in pairs so every switch position maps to exactly one mode, whichever side of the boundary the centre position falls on:
+   - **Slots 1 and 2 (switch up):** Stabilized (manual stabilized, good for learning)
+   - **Slots 3 and 4 (switch centre):** Altitude Control (holds altitude using barometer)
+   - **Slots 5 and 6 (switch down):** Position Control (holds position using optical flow — requires optical flow setup in Part 12)
+
+   Then flip the switch through all three positions and watch the highlighted slot on the Flight Modes page change each time. If you fill only slots 1, 3 and 5, the centre position can land in an empty slot 4 and that mode is silently unreachable — the instructor's vehicle had no Stabilized mode for an afternoon this way.
 4. Set **Arm switch** to **Channel 5** (switch **SA**).
 5. Set **Kill Switch** to **Channel 8** (switch **SD**) — this immediately cuts all motor output in an emergency.
 
@@ -379,7 +381,9 @@ Refer to the PX4 X-frame motor spin convention:
 3. Set **Full Voltage (per cell):** 4.20 V  
    **Empty Voltage (per cell):** 3.20 V
 4. If you have a current sensor, calibrate it by entering the measured shunt resistance. For the MicoAir743v2 onboard sensor, use the value specified in the MicoAir documentation.
-5. Set a **Low Battery Warning** at ~20% and **Critical Battery Failsafe** at ~10% to trigger a land-in-place action (since this platform has no GPS, Return to Launch is not available).
+5. Set the battery failsafe (**Vehicle Setup → Safety → Battery Failsafe**, or the parameters directly): `BAT_LOW_THR` = 0.15, `BAT_CRIT_THR` = 0.07, and **`COM_LOW_BAT_ACT` = Land**. Not Return to Launch — this platform has no GPS, and the default (warning only) lets you fly the pack flat.
+
+> **Check the pack before every flight.** A 2S LiPo resting below about 7.4 V is not charged, and nothing on the vehicle will stop you taking off on it. The instructor flew a pack that had been put down uncharged: it sagged to 4.4 V in the air, the flight controller browned out mid-hover, one ESC dropped below its cutoff, and the pack was ruined. Read the voltage in QGC's toolbar (or on the charger) before you arm.
 
 ---
 
@@ -401,7 +405,7 @@ The MTF-01 must be configured for PX4 MAVLink output using MicoAssistant before 
    - Baud rate: **115200**
 5. Disconnect the MTF-01 from the laptop and connect it to the **TELEM2** port on the MicoAir743v2.
 
-> The coordinate frame shown in MicoAssistant will appear different from what the sensor sends via MAVLink to PX4 — this is expected. PX4 applies its own frame transformation.
+> MicoAssistant shows motion in the sensor's *own* axes. What matters to PX4 is how those axes sit relative to the vehicle's body frame (X forward, Y right), which you declare with `SENS_FLOW_ROT` in 12.2 and **verify by hand in 12.2 step 3**. On the course airframe as built, the module is mounted rotated 180° about the vertical from PX4's default assumption. Do not take that on trust: a flow sensor that is reversed is the single most damaging misconfiguration on this platform, and it is nearly invisible — the instructor's vehicle flew several flights with it wrong, the velocity estimate looked plausible in every log, and the vehicle slid across the room in every "hold".
 
 ### 12.2 Configure PX4 Parameters for Optical Flow
 
@@ -415,8 +419,8 @@ In **Vehicle Setup → Parameters**, set the following. Parameters marked "→ T
 | `EKF2_OF_CTRL` | Enabled | Enable optical flow in EKF2 |
 | `EKF2_RNG_CTRL` | Enabled (conditional) | Enable rangefinder in EKF2 |
 | `EKF2_HGT_REF` | Range sensor | Use rangefinder as height reference — **reboot after setting** |
-| `SENS_FLOW_ROT` | No Rotation | MTF-01 mounted in default orientation |
-| `SENS_FLOW_MAXHGT` | 8 m | Maximum valid range of MTF-01 |
+| `SENS_FLOW_ROT` | **Yaw 180°** (value 4) | How the MTF-01 is mounted on the course airframe. **Verify in step 3 below** — if yours is mounted differently, the check tells you |
+| `SENS_FLOW_MAXHGT` | 8 m | Maximum valid range of MTF-01 (indoors; see the outdoor note below) |
 | `SENS_FLOW_RATE` | 100 Hz | Sensor update rate |
 
 After setting all parameters and rebooting, verify the sensor is working in two steps:
@@ -439,7 +443,13 @@ After setting all parameters and rebooting, verify the sensor is working in two 
 
    > **Another point of confusion:** `cs_opt_flow_terrain` and `cs_rng_terrain` will likely read **False** even when everything is healthy. These track a separate *terrain sub-estimator* that PX4 uses mainly when baro or GPS is the primary height source and it still needs a height-above-ground estimate on the side. Since this platform already uses the rangefinder directly as its primary height reference (`cs_rng_hgt` = True), that secondary terrain filter isn't needed and normally won't engage. Don't confuse these two with `cs_opt_flow` / `cs_rng_hgt` above — those are the ones that actually confirm the sensor chain is working.
 
-   As a quick intuitive check, watch the **Local Position** / velocity readout in the Fly view instrument panel while sliding the frame sideways by hand — with props off and disarmed, the velocity estimate should move with your hand in real time if flow is being fused correctly.
+   > `cs_rng_kin_consistent` is a weaker guarantee than it sounds: it did not trip when the instructor's rangefinder stopped tracking at 2 m over grass and the vehicle climbed to 5 m. Treat it as "no gross fault", not "the height is right".
+
+3. **Confirm the orientation.** This is the check that matters. Props off, disarmed. In the MAVLink Console run `listener vehicle_optical_flow 30` — this is the flow *after* `SENS_FLOW_ROT` has been applied, i.e. what EKF2 sees — while you hold the vehicle about 0.5 m over a textured floor and slide it steadily **forward** (nose direction) for a second. `pixel_flow[1]` must come out **positive**. Repeat sliding it to the **right**: `pixel_flow[0]` must be **negative**. Both reversed means `SENS_FLOW_ROT` is off by 180°; forward showing up in `pixel_flow[0]` instead means off by 90°. Fix the parameter, not your expectations.
+
+   Do **not** use the Local Position / velocity readout for this. EKF2 blends flow with the accelerometers, so the velocity estimate follows your hand plausibly *even when the sensor is reversed* — that is exactly how the instructor's mistake stayed hidden. The raw topic cannot lie about its sign.
+
+> **Outdoors, stay below 1.5 m.** Over sunlit grass the MTF-01's rangefinder stops tracking at roughly 1.5 m and its readings flatten while the vehicle keeps climbing. PX4 uses that rangefinder as its height reference (`EKF2_HGT_REF`), and nothing flags the failure — the instructor's vehicle went to 5 m on a commanded 2 m. Indoors it is honest to its full 8 m.
 
 ---
 
@@ -456,15 +466,16 @@ PX4 requires all pre-arm checks to pass before it will allow arming.
 | `RC not calibrated` | Repeat Part 8.2 |
 | `No RC signal` | Check transmitter is on and bound |
 | `GPS not locked` | This platform has no GPS — disable GPS requirement (see step 3) |
+| `System power unavailable` / `Preflight Fail: system power` | The MicoAir743v2 does not report its 5 V rail. Set `CBRK_SUPPLY_CHK` = 894281 to disable the check |
 | Several checks fail at once after a reboot that used to be clean | Parameters did not load — see the SD card note in Part 5. Reload your saved parameter file |
 
 3. Disable the GPS pre-arm check since this platform has no GPS. In **Vehicle Setup → Parameters**, set `EKF2_GPS_CTRL` = 0. On older PX4 firmware the equivalent parameter is `COM_ARM_WO_GPS` = 1.
 
 4. **Arm test (props off, indoors):**  
    - Switch flight mode to Stabilized.  
-   - Hold left stick down-right for 2 seconds to arm.  
+   - Flip the **arm switch** (SA, mapped in Part 9). Once an arm switch is mapped, PX4 ignores stick arming.  
    - Motors should begin spinning at idle. Confirm all 4 motors spin.  
-   - Disarm: hold left stick down-left for 2 seconds.
+   - Flip the arm switch back to disarm. Then **wait a few seconds before pulling the battery** — the parameter and log writers are still flushing to the SD card (Part 5).
 
 ---
 
@@ -535,5 +546,10 @@ Submit the following before the next lab session:
 | Motors don't all spin | ESC not armed or wrong DSHOT config | Verify `DSHOT_CONFIG` parameter; check wiring |
 | Drone drifts in Stabilized | Level horizon not calibrated | Redo Level Horizon calibration (Part 7.4) |
 | Position Control drifts or won't engage | Optical flow not configured or no rangefinder lock | Verify MTF-01 wiring and repeat Part 12 |
+| Position Control **accelerates away**, or holds briefly then slides off | Flow sensor rotated (`SENS_FLOW_ROT` wrong) — the estimate looks fine in the log | Part 12.2 step 3, the hand-slide check on `vehicle_optical_flow` |
+| Vehicle yaws by itself in Position Control | EKF2 re-aligning its heading on inconsistent flow — usually the same rotated sensor | Fix `SENS_FLOW_ROT` first |
+| `System power unavailable` on arming | Board has no 5 V rail sense | `CBRK_SUPPLY_CHK` = 894281 (Part 13) |
+| A motor will not spin after a flight; ESC beeps | Pack over-discharged in flight | Check pack voltage; a 2S cell under 3.0 V resting is done. Set the battery failsafe (Part 11) |
+| Centre switch position does nothing / a mode is unreachable | Flight-mode slots not filled in pairs | Part 9: slots 1–2, 3–4, 5–6 |
 | GPS pre-arm check fails | No GPS on platform | Set `EKF2_GPS_CTRL` = 0 in Parameters |
 
