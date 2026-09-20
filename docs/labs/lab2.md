@@ -10,23 +10,24 @@ last_modified_at: 2026-09-01 12:00:00 -0400
 
 **Course:** Uncrewed Aerial Systems  
 **Prerequisites:** Lab 1 (Dynamometer Characterization), a vehicle built per the [Assembly Instructions]({% link docs/assembly_instructions.md %}) with a radio link set up per [Radio Configuration]({% link docs/radio_configuration.md %}), basic familiarity with Linux terminal  
-**Estimated Time:** 3 hours  
+**Estimated Time:** 3 hours, plus a supervised flight session  
 **Hardware Required:**
 - Custom quadrotor with MicoAir743v2 AIO flight controller running PX4, assembled per the [Assembly Instructions]({% link docs/assembly_instructions.md %})
 - USB-C cable
 - RC transmitter and receiver, flashed and bound per [Radio Configuration]({% link docs/radio_configuration.md %})
-- 2S LiPo battery (for ESC calibration and motor testing)
+- 2S LiPo batteries, charged (for ESC calibration, motor testing and the test flights in Part 14)
+- Propellers — fitted **only** for Part 14
 - Personal laptop with USB port
 
 ---
 
 ## Overview
 
-In this lab you will configure a PX4-based quadrotor from a fresh firmware state to a flight-ready system. You will set up the PX4 development toolchain, build firmware from source, flash it to the flight controller, step through all mandatory calibrations, and configure flight modes.
+In this lab you will configure a PX4-based quadrotor from a fresh firmware state to a flight-ready system. You will set up the PX4 development toolchain, build firmware from source, flash it to the flight controller, step through all mandatory calibrations, configure flight modes, and finish with three supervised test flights — one in each of PX4's Stabilized, Altitude and Position modes.
 
 This lab is the third stage of bringing up the vehicle. It assumes the airframe is already built and wired ([Assembly Instructions]({% link docs/assembly_instructions.md %})) and that the ExpressLRS transmitter and receiver are already flashed and bound ([Radio Configuration]({% link docs/radio_configuration.md %})). Platform-specific values — motor geometry, battery calibration constants, and the port assignments referenced throughout — are collected in [Appendix A of the Assembly Instructions]({% link docs/assembly_instructions.md %}#appendix-a-platform-parameter-reference).
 
-By the end of this lab your drone will be ready for its first autonomous hover test in Lab 3.
+By the end of this lab you will have flown the vehicle on PX4's own controller in all three modes, and seen for yourself what each sensor buys you: gyro-only stabilization, then barometer/rangefinder height hold, then optical-flow position hold. In Lab 3 you replace that controller with your own.
 
 ---
 
@@ -479,12 +480,80 @@ PX4 requires all pre-arm checks to pass before it will allow arming.
 
 ---
 
+## Part 14: Initial Test Flights
+
+> **Supervised flights only.** Every flight in this part is flown in the netted flight area with a GSI or the instructor present. Do not fly elsewhere, and do not fly alone.
+
+You have configured three modes on the left 3-position switch (SB, Part 9): **Stabilized** (up), **Altitude** (centre), **Position** (down). This part flies each of them, in that order, and each flight exists to show you what the next sensor adds. Everything the vehicle does here it does on PX4's own controller; in Lab 3 you will replace that controller and fly the same progression on your own code.
+
+### 14.1 Before the first flight
+
+- [ ] Parts 6–13 complete; QGC status bar green with the battery connected and the transmitter on
+- [ ] Optical flow orientation verified by hand (Part 12.2 step 3) — not just "the flags are true"
+- [ ] Battery **checked on the charger or in QGC**: 8.0 V or more for a 2S pack (Part 11)
+- [ ] Propellers fitted with the correct rotation on each motor (Part 10.2), nuts tight
+- [ ] Arm switch and **kill switch** located on the transmitter without looking — the kill switch is the only control that works whatever the software is doing
+- [ ] Mode switch **up (Stabilized)** before arming
+- [ ] Flight area clear, net closed, GSI or instructor watching
+
+You will land after every flight. Land, disarm, **wait a few seconds**, then pick the vehicle up. Between flights, download the log (**Analyze Tools → Log Download**) — you will need all three for the deliverable.
+
+### 14.2 Flight 1 — Stabilized
+
+The gyroscope and accelerometer alone. PX4 holds the attitude you command; the throttle stick is thrust, directly.
+
+1. Arm with the arm switch. Motors idle.
+2. Raise the throttle smoothly until the vehicle lifts. It hovers somewhere near **45–50 % stick** — find it, and remember it; Lab 3 asks for it.
+3. Hover at about 1 m for 20–30 seconds, sticks otherwise centred.
+4. Land by lowering the throttle gently to the floor. Disarm.
+
+What you should see: the vehicle holds level when you release roll and pitch, but **nothing holds height or position**. You will be working the throttle constantly to stay at 1 m, and it will wander across the net with the sticks centred. On the instructor's airframe a hand-flown hover in Stabilized held height to about ±0.4 m. That is not a tuning problem. It is what a controller with no height and no position sensor can do, and it is the baseline for the next two flights.
+
+### 14.3 Flight 2 — Altitude
+
+Add the barometer and rangefinder. PX4 now closes a loop on height.
+
+1. Take off in **Stabilized** as before and settle in a hover at about 1 m.
+2. **Centre the throttle stick**, then flip the mode switch to the **centre** position. The throttle now commands *climb rate*: centre holds, up climbs, down descends.
+3. Release the throttle. Hover for 20–30 seconds.
+4. Climb to about 1.5 m, hold, descend back to 1 m.
+5. Land in Altitude mode: throttle stick fully down. The vehicle descends at a fixed rate, PX4 detects the touchdown (`Landing detected` in QGC), and the motors stop. Disarm.
+
+What you should see: height held to a few centimetres with the throttle released (the instructor's vehicle: ±5–9 cm), while the vehicle **still drifts horizontally** exactly as it did in Flight 1. If the throttle was not centred when you flipped the switch, the vehicle climbs or sinks the moment you do — flip back to Stabilized, centre it, try again.
+
+### 14.4 Flight 3 — Position
+
+Add the optical flow. PX4 now also closes a loop on horizontal velocity and position.
+
+1. Take off in **Stabilized**, hover at about 1 m **over a textured part of the floor** (the flow needs texture and light, and works best between 0.5 and 2 m).
+2. Centre all sticks, then flip the mode switch **down**.
+3. Hands off. Hover for 30 seconds.
+4. Push the pitch stick forward for a second and release: the vehicle moves forward at a steady speed and **stops when you release** — the sticks now command velocity, and a centred stick is a brake, not "hold level".
+5. Land in Position mode as in 14.3. Disarm.
+
+What you should see: the drift is gone. The vehicle holds a spot to within a few tens of centimetres, breathing slowly as the flow estimate does. **If instead it accelerates away the moment you flip the switch, flip straight back to Stabilized** and land: that is the reversed-flow signature, and the fix is `SENS_FLOW_ROT` (Part 12.2 step 3), not more flying. A vehicle that yaws by itself in this mode is the same fault.
+
+### 14.5 Abort paths
+
+In order of severity. Know all three before you arm.
+
+| Abort | What it does | When |
+|---|---|---|
+| **Mode switch up** (Stabilized) | Drops back to attitude-only control, instantly | Anything unexpected in Altitude or Position mode. Your default reaction |
+| **Throttle down** | Descends and lands (Altitude / Position), or just descends (Stabilized) | You want it on the floor now |
+| **Kill switch** | Cuts all motor output, below the flight-control layer. The vehicle falls | It is heading for a person or the net at speed, or doing something violent |
+
+The kill switch drops the vehicle from whatever height it is at. At 1 m over a padded floor that is a cheap repair; at 3 m it is not. Use the mode switch first.
+
+---
+
 ## Lab Deliverables
 
 Submit the following before the next lab session:
 
 1. **Screenshot** of QGC with all pre-arm checks passing (green status bar).
 2. **Screenshot** of the Sensors page showing all sensors calibrated (green checkmarks).
+3. **Three flight logs** (`.ulg`), one per mode from Part 14, and a paragraph for each describing what the vehicle did with the sticks centred — height and horizontal drift — and which sensor accounts for the difference from the flight before. Include the hover throttle you found in Flight 1.
 
 ---
 
