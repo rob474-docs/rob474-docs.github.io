@@ -406,7 +406,7 @@ The MTF-01 must be configured for PX4 MAVLink output using MicoAssistant before 
    - Baud rate: **115200**
 5. Disconnect the MTF-01 from the laptop and connect it to the **TELEM2** port on the MicoAir743v2.
 
-> MicoAssistant shows motion in the sensor's *own* axes. What matters to PX4 is how those axes sit relative to the vehicle's body frame (X forward, Y right), which you declare with `SENS_FLOW_ROT` in 12.2 and **verify by hand in 12.2 step 3**. On the course airframe as built, the module is mounted rotated 180° about the vertical from PX4's default assumption. Do not take that on trust: a flow sensor that is reversed is the single most damaging misconfiguration on this platform, and it is nearly invisible — the instructor's vehicle flew several flights with it wrong, the velocity estimate looked plausible in every log, and the vehicle slid across the room in every "hold".
+> MicoAssistant shows motion in the sensor's *own* axes. What matters to PX4 is how those axes sit relative to the vehicle's body frame (X forward, Y right), which you declare with `SENS_FLOW_ROT` in 12.2 and **verify by hand in 12.2 step 3**. Mounted as shown in the Assembly Instructions, the module needs no rotation — but do not take that on trust. A flow sensor that is physically mounted backwards is the single most damaging misconfiguration on this platform, and it is nearly invisible: the instructor's vehicle flew several flights with the module mounted the wrong way round, the velocity estimate looked plausible in every log, and the vehicle slid across the room in every "hold". The hand-slide check in step 3 is what catches it.
 
 ### 12.2 Configure PX4 Parameters for Optical Flow
 
@@ -420,7 +420,7 @@ In **Vehicle Setup → Parameters**, set the following. Parameters marked "→ T
 | `EKF2_OF_CTRL` | Enabled | Enable optical flow in EKF2 |
 | `EKF2_RNG_CTRL` | Enabled (conditional) | Enable rangefinder in EKF2 |
 | `EKF2_HGT_REF` | Range sensor | Use rangefinder as height reference — **reboot after setting** |
-| `SENS_FLOW_ROT` | **Yaw 180°** (value 4) | How the MTF-01 is mounted on the course airframe. **Verify in step 3 below** — if yours is mounted differently, the check tells you |
+| `SENS_FLOW_ROT` | No Rotation (value 0) | MTF-01 mounted in its default orientation, as shown in the [Assembly Instructions]({% link docs/assembly_instructions.md %}). **Verify in step 3 below** — the check tells you if yours is mounted differently |
 | `SENS_FLOW_MAXHGT` | 8 m | Maximum valid range of MTF-01 (indoors; see the outdoor note below) |
 | `SENS_FLOW_RATE` | 100 Hz | Sensor update rate |
 
@@ -531,7 +531,7 @@ Add the optical flow. PX4 now also closes a loop on horizontal velocity and posi
 4. Push the pitch stick forward for a second and release: the vehicle moves forward at a steady speed and **stops when you release** — the sticks now command velocity, and a centred stick is a brake, not "hold level".
 5. Land in Position mode as in 14.3. Disarm.
 
-What you should see: the drift is gone. The vehicle holds a spot to within a few tens of centimetres, breathing slowly as the flow estimate does. **If instead it accelerates away the moment you flip the switch, flip straight back to Stabilized** and land: that is the reversed-flow signature, and the fix is `SENS_FLOW_ROT` (Part 12.2 step 3), not more flying. A vehicle that yaws by itself in this mode is the same fault.
+What you should see: the drift is gone. The vehicle holds a spot to within a few tens of centimetres, breathing slowly as the flow estimate does. **If instead it accelerates away the moment you flip the switch, flip straight back to Stabilized** and land: that is the reversed-flow signature. The fix is the hand-slide check in Part 12.2 step 3 — a module mounted backwards, or a wrong `SENS_FLOW_ROT` — not more flying. A vehicle that yaws by itself in this mode is the same fault.
 
 ### 14.5 Abort paths
 
@@ -569,8 +569,8 @@ Submit the following before the next lab session:
 | Motors don't all spin | ESC not armed or wrong DSHOT config | Verify `DSHOT_CONFIG` parameter; check wiring |
 | Drone drifts in Stabilized | Level horizon not calibrated | Redo Level Horizon calibration (Part 7.4) |
 | Position Control drifts or won't engage | Optical flow not configured or no rangefinder lock | Verify MTF-01 wiring and repeat Part 12 |
-| Position Control **accelerates away**, or holds briefly then slides off | Flow sensor rotated (`SENS_FLOW_ROT` wrong) — the estimate looks fine in the log | Part 12.2 step 3, the hand-slide check on `vehicle_optical_flow` |
-| Vehicle yaws by itself in Position Control | EKF2 re-aligning its heading on inconsistent flow — usually the same rotated sensor | Fix `SENS_FLOW_ROT` first |
+| Position Control **accelerates away**, or holds briefly then slides off | Flow module mounted backwards, or `SENS_FLOW_ROT` wrong — the estimate looks fine in the log | Part 12.2 step 3, the hand-slide check on `vehicle_optical_flow` |
+| Vehicle yaws by itself in Position Control | EKF2 re-aligning its heading on inconsistent flow — usually the same reversed sensor | Run the hand-slide check first |
 | `System power unavailable` on arming | Board has no 5 V rail sense | `CBRK_SUPPLY_CHK` = 894281 (Part 13) |
 | A motor will not spin after a flight; ESC beeps | Pack over-discharged in flight | Check pack voltage; a 2S cell under 3.0 V resting is done. Set the battery failsafe (Part 11) |
 | Centre switch position does nothing / a mode is unreachable | Flight-mode slots not filled in pairs | Part 9: slots 1–2, 3–4, 5–6 |
