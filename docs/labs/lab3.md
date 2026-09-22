@@ -112,15 +112,26 @@ The consequence that trips up nearly everyone: **z is positive downward.** A veh
 
 ## Part 2: Install the Module Template
 
-1. Clone the module template from the course GitLab server directly into your PX4 source tree:
+1. **Make a group for your team.** On [the course GitLab server](https://gitlab.eecs.umich.edu), go to **Groups → New group**, name it for your team (for example `rob474-f26-team3`), and add your teammates and the course staff as members — **Developer** for teammates, **Reporter** for the staff account, so we can read your code for grading. One group per team, made once, used for the rest of the term.
+
+2. **Fork the template into your group.** Open [`rob474-f26/uas_control`](https://gitlab.eecs.umich.edu/rob474-f26/uas_control), click **Fork**, and select your team's group as the namespace. You now have your own copy at `https://gitlab.eecs.umich.edu/<your-group>/uas_control`, which is the repository you will work in and hand in. The course copy stays read-only — you cannot push to it, and you should not try.
+
+3. **Clone your fork** into your PX4 source tree:
    ```bash
    cd ~/uas/PX4-Autopilot/src/modules
-   git clone https://gitlab.eecs.umich.edu/rob474-f26/uas_control.git
+   git clone https://gitlab.eecs.umich.edu/<your-group>/uas_control.git
    ```
+   Substitute your group's path. Check you cloned the right one before you start writing code:
+   ```bash
+   cd uas_control && git remote -v
+   ```
+   `origin` must point at **your group**, not at `rob474-f26`.
 
-   > The module is its own git repository, separate from PX4-Autopilot. Commit your work to it as you go — `git status` inside `src/modules/uas_control` shows only your files, not the rest of the PX4 tree — and push to GitLab regularly. Your source code deliverable at the end of this lab is this repository.
+   > The module is its own git repository, separate from PX4-Autopilot. Commit your work to it as you go — `git status` inside `src/modules/uas_control` shows only your files, not the rest of the PX4 tree — and push to your fork regularly. Your source code deliverable at the end of this lab is this repository.
 
-2. Enable the module for your board. Open the board config:
+   > **If the template is updated during the term**, pull the change into your fork rather than re-cloning: add the course copy as a second remote once, `git remote add upstream https://gitlab.eecs.umich.edu/rob474-f26/uas_control.git`, then `git pull upstream main` when we tell you there is something to take. Your commits stay where they are.
+
+4. Enable the module for your board. Open the board config:
    ```bash
    ~/uas/PX4-Autopilot/boards/micoair/h743-v2/default.px4board
    ```
@@ -129,7 +140,7 @@ The consequence that trips up nearly everyone: **z is positive downward.** A veh
    CONFIG_MODULES_UAS_CONTROL=y
    ```
 
-3. Start the module at boot. Open the startup script:
+5. Start the module at boot. Open the startup script:
    ```bash
    ~/uas/PX4-Autopilot/ROMFS/px4fmu_common/init.d/rc.mc_apps
    ```
@@ -140,14 +151,14 @@ The consequence that trips up nearly everyone: **z is positive downward.** A veh
 
    > If you prefer to start it manually each session instead, skip this step and run `uas_control start` from the MAVLink Console. Starting at boot is more convenient; starting manually makes it obvious when your module is and is not running.
 
-4. Verify it builds:
+6. Verify it builds:
    ```bash
    cd ~/uas/PX4-Autopilot
    make micoair_h743-v2_default
    ```
    The template compiles as-is — every controller is stubbed but syntactically complete. **If it does not build before you have written any code, fix that before continuing**; you do not want to be debugging build configuration and control math at the same time.
 
-5. Flash it. Nothing in this lab works until the module is actually on the board:
+7. Flash it. Nothing in this lab works until the module is actually on the board:
    ```bash
    make micoair_h743-v2_default upload
    ```
@@ -482,7 +493,7 @@ Start conservative and increase. These oscillation signatures apply to any casca
 
 ## Lab Deliverables
 
-1. **Source code:** your `uas_control` repository pushed to GitLab, with completed `RateController.cpp`, `AttitudeController.cpp`, and `AltitudeController.cpp`.
+1. **Source code:** your team's `uas_control` fork on GitLab, pushed, with completed `RateController.cpp`, `AttitudeController.cpp`, and `AltitudeController.cpp`. Confirm the course staff account has at least Reporter access to your group, or we cannot grade it.
 2. **Bench test evidence:** the plots from Parts 6.3, 7.3, and 8.5.
 3. **Flight log:** a `.ulg` from your best flight, with the loop configuration you reached noted.
 4. **Written analysis (2–3 pages):**
@@ -497,9 +508,10 @@ Start conservative and increase. These oscillation signatures apply to any casca
 
 | Symptom | Likely Cause | Fix |
 |---|---|---|
-| Module won't build | `CONFIG_MODULES_UAS_CONTROL=y` missing | Check `boards/micoair/h743-v2/default.px4board` (Part 2.2) |
+| Module won't build | `CONFIG_MODULES_UAS_CONTROL=y` missing | Check `boards/micoair/h743-v2/default.px4board` (Part 2, step 4) |
 | Build error on a uORB field name | PX4 API drift between versions | Check actual field names in `~/uas/PX4-Autopilot/msg/` |
 | `uas_control: command not found` | Module not built into firmware | Rebuild and reflash after the board config change |
+| `git push` to the module repo is rejected | You cloned the course copy, not your team's fork | `git remote -v` — `origin` must be your group (Part 2, steps 1–3) |
 | `active: no` while armed in your mode | Mode slot mismatch | Confirm `UAS_MODE_SLOT` = 14 and the switch position is assigned to Offboard (Part 4) |
 | Motors don't respond, state looks fine | Rate loop not enabled | `UAS_LOOP_EN` must have bit 0 set |
 | **Offboard mode won't engage / rejected** | Heartbeat not streaming before mode entry | `listener offboard_control_mode` — must be fresh with `thrust_and_torque: True`. Confirm the module is running |
