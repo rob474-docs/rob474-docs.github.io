@@ -115,9 +115,8 @@ The consequence that trips up nearly everyone: **z is positive downward.** A veh
 1. Clone the module template from the course GitLab server directly into your PX4 source tree:
    ```bash
    cd ~/uas/PX4-Autopilot/src/modules
-   git clone <GITLAB_URL>/uas_control.git
+   git clone https://gitlab.eecs.umich.edu/rob474-f26/uas_control.git
    ```
-   <!-- TODO: replace <GITLAB_URL> with the course GitLab server address once it is finalized -->
 
    > The module is its own git repository, separate from PX4-Autopilot. Commit your work to it as you go — `git status` inside `src/modules/uas_control` shows only your files, not the rest of the PX4 tree — and push to GitLab regularly. Your source code deliverable at the end of this lab is this repository.
 
