@@ -238,6 +238,22 @@ Peripheral connections used on this build:
 
 These assignments determine the `MAV_0_CONFIG` and `MAV_1_CONFIG` parameter values in [Appendix A](#appendix-a-platform-parameter-reference). If you wire a peripheral to a different port, those parameters must change to match.
 
+### Wiring the Receiver
+
+The RadioMaster XR2 receiver connects to the **UART1 / TELEM1** header with a four-wire harness soldered to the receiver's main pad row.
+
+<a href="{{ '/assets/images/assembly/elrs-rx-wiring.jpg' | relative_url }}" class="image-link">
+  <img src="{{ '/assets/images/assembly/elrs-rx-wiring.jpg' | relative_url }}" alt="RadioMaster XR2 receiver with a four-wire harness soldered to its pads, terminating in a connector for the flight controller UART1 header" />
+</a>
+
+**Figure 12.** The receiver harness as it should be soldered: **GND** (black), **5 V** (red), and the two UART signal lines (green and yellow) on the receiver's main pad row. The secondary `RX2` / `TX2` pads at the bottom edge are left unused. The connector on the other end plugs into the flight controller's UART1 header shown in Figure 11.
+{: .fs-3 .text-grey-dk-000 }
+
+{: .warning }
+> The two UART lines must **cross**: the receiver's **TX** goes to the flight controller's **RX1**, and the receiver's **RX** to the flight controller's **TX1**. Swapping them is the most common reason a correctly flashed and bound receiver produces no channel data in QGroundControl. Check polarity on the power pair as well before the first power-up — a reversed 5 V line will destroy the receiver.
+
+Flashing and binding the receiver is covered on the [Radio Configuration]({% link docs/radio_configuration.md %}) page.
+
 ---
 
 ## Next Steps
@@ -292,7 +308,7 @@ The reference build's actuator assignment, which follows from which motor was so
   <img src="{{ '/assets/images/assembly/qgc-actuator-outputs.png' | relative_url }}" alt="QGroundControl actuator outputs panel showing MAIN 1 to 4 set to DShot600 and assigned to motors 3, 4, 1 and 2" />
 </a>
 
-**Figure 12.** Actuator output assignment in QGroundControl, with **MAIN 1–4** set to **DShot600**.
+**Figure 13.** Actuator output assignment in QGroundControl, with **MAIN 1–4** set to **DShot600**.
 {: .fs-3 .text-grey-dk-000 }
 
 {: .warning }
