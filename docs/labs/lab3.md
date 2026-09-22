@@ -112,7 +112,7 @@ The consequence that trips up nearly everyone: **z is positive downward.** A veh
 
 ## Part 2: Install the Module Template
 
-1. **Make a group for your team.** On [the course GitLab server](https://gitlab.eecs.umich.edu), go to **Groups → New group**, name it for your team (for example `rob474-f26-team3`), and add your teammates and the course staff as members — **Developer** for teammates, **Reporter** for the staff account, so we can read your code for grading. One group per team, made once, used for the rest of the term.
+1. **Make a group for your team.** On [the course GitLab server](https://gitlab.eecs.umich.edu), go to **Groups → New group** and give it any name you like. Then, under **Manage → Members**, invite your teammates as **Developer**, and invite the instructor and your GSI by their **uniqname email addresses** as **Reporter** — that is their GitLab username, so they will appear as you type. Without that we cannot read your code to grade it. One group per team, made once, used for the rest of the term.
 
 2. **Fork the template into your group.** Open [`rob474-f26/uas_control`](https://gitlab.eecs.umich.edu/rob474-f26/uas_control), click **Fork**, and select your team's group as the namespace. You now have your own copy at `https://gitlab.eecs.umich.edu/<your-group>/uas_control`, which is the repository you will work in and hand in. The course copy stays read-only — you cannot push to it, and you should not try.
 
@@ -493,7 +493,7 @@ Start conservative and increase. These oscillation signatures apply to any casca
 
 ## Lab Deliverables
 
-1. **Source code:** your team's `uas_control` fork on GitLab, pushed, with completed `RateController.cpp`, `AttitudeController.cpp`, and `AltitudeController.cpp`. Confirm the course staff account has at least Reporter access to your group, or we cannot grade it.
+1. **Source code:** your team's `uas_control` fork on GitLab, pushed, with completed `RateController.cpp`, `AttitudeController.cpp`, and `AltitudeController.cpp`. Confirm the instructor and your GSI are still members of your group with at least Reporter access, or we cannot grade it.
 2. **Bench test evidence:** the plots from Parts 6.3, 7.3, and 8.5.
 3. **Flight log:** a `.ulg` from your best flight, with the loop configuration you reached noted.
 4. **Written analysis (2–3 pages):**
