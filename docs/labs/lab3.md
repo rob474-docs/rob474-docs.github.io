@@ -31,7 +31,7 @@ By the end of this lab you will have flown a quadrotor on control code you wrote
 
 > **Scope:** the outer **velocity** and **position** loops are Lab 4. Their template files ship with this module so you can see where they fit in the architecture, but they stay stubbed for now. You will not enable them, and the module works fine without them. Lab 4 adds motion capture, which is what makes a position loop worth closing on this platform.
 
-> **On the relationship to PX4's controller:** you are not modifying `mc_rate_control` or `mc_att_control`. You are writing a parallel module that takes over when you flip a switch, and stays silent otherwise. PX4's controller remains available as a fallback, which matters when your code does not work, and at some point during this lab it will not work.
+> **On the relationship to PX4's controller:** you are not modifying `mc_rate_control` or `mc_att_control`. You are writing a parallel module that takes over when you flip a switch, and stays silent otherwise. PX4's controller remains available as a fallback. Expect to rely on it: an incorrect controller is the normal state during development, and recovering to a known-good one is part of the procedure.
 
 ---
 
@@ -101,12 +101,12 @@ PX4's control allocator converts these into the four per-motor commands using th
 
 ### 1.3 Frame Conventions
 
-Get these wrong and your vehicle will fly into a wall in a confidently incorrect direction.
+A sign or frame error here produces a controller that is internally consistent and still drives the vehicle in the wrong direction, so verify these conventions before writing control code.
 
 - **Body frame (FRD):** x = forward, y = right, z = **down**
 - **Local frame (NED):** x = north, y = east, z = **down**
 
-The consequence that trips up nearly everyone: **z is positive downward.** A vehicle 2 m above the ground has `z = -2.0`, and `vz` is *positive while descending*. The `altitude` field in `VehicleState` is flipped to positive-up for convenience; nothing else is.
+The consequence that matters most: **z is positive downward.** A vehicle 2 m above the ground has `z = -2.0`, and `vz` is *positive while descending*. The `altitude` field in `VehicleState` is flipped to positive-up for convenience; nothing else is.
 
 ---
 
@@ -200,7 +200,7 @@ Read `VehicleState.hpp` first. It defines every variable you have access to and 
 | 15 | + velocity | Lab 4 |
 | 31 | Full cascade | Lab 4 |
 
-> Do not set `UAS_LOOP_EN` above 7 in this lab. The velocity and position controllers are stubbed and return zero, so enabling them commands level flight and zero velocity regardless of your stick input. The vehicle will refuse to translate and you will spend an hour debugging a controller you have not written yet.
+> Do not set `UAS_LOOP_EN` above 7 in this lab. The velocity and position controllers are stubbed and return zero, so enabling them commands level flight and zero velocity regardless of your stick input. The vehicle will refuse to translate, and the symptom is easily mistaken for a fault in the loops you have written.
 
 ---
 
@@ -210,7 +210,7 @@ Your module activates on one `nav_state`: **Offboard** (`UAS_MODE_SLOT` = 14).
 
 1. In QGC, go to **Vehicle Setup → Flight Modes**.
 2. Using the mode channel you identified in [Lab 2 Part 8.3]({% link docs/labs/lab2.md %}#83-identify-switch-channels), set one switch position to **Offboard**.
-3. Keep the other two positions as **Stabilized** and **Altitude**. These are your escape hatches, and unlike a naive setup they genuinely work; see 4.1 for why.
+3. Keep the other two positions as **Stabilized** and **Altitude**. These are the recovery modes, and they remain available while your module is active; see 4.1 for why.
 4. Confirm your **Kill Switch** ([Lab 2 Part 9]({% link docs/labs/lab2.md %}#part-9-flight-modes)) still works. It cuts motor output below the flight-control layer, so it works even if your code is in a tight loop doing something catastrophic.
 
 > **Know your two abort paths before you arm anything:** flip the mode switch (returns to PX4's controller), or hit the kill switch (cuts all motor output). Practice reaching both without looking.
@@ -268,7 +268,7 @@ If it is not running, start it:
 uas_control start
 ```
 
-> Two bench-test quirks worth knowing: **"Disarming denied: not landed"**. Tilting an armed vehicle by hand can convince the land detector it is airborne, and the disarm switch is refused until it decides you have landed (a second or two). The kill switch does not care. And **the heartbeat stops the moment the module crashes**, so if `uas_control status` ever says the module is not running after a mode switch, that is your code, not PX4.
+> Two bench-test behaviours to expect. **"Disarming denied: not landed"**: tilting an armed vehicle by hand can convince the land detector it is airborne, and the disarm switch is refused until it decides you have landed (a second or two). The kill switch does not care. And **the heartbeat stops the moment the module crashes**, so if `uas_control status` ever says the module is not running after a mode switch, that is your code, not PX4.
 
 > **You do not need to stop `mc_rate_control` or `mc_att_control`.** They stand down on their own whenever Offboard is active, which is the whole point of Part 4.1. If you find yourself typing `mc_rate_control stop`, something else is wrong; go back and check `UAS_MODE_SLOT` is 14 and that the heartbeat is publishing.
 
@@ -358,7 +358,7 @@ Takes desired angles, produces desired body rates for your rate loop.
 
 ### 7.1 Implement
 
-Usually P-only. An integrator here fights the one in the rate loop and produces slow oscillation that is genuinely hard to diagnose. Start proportional; add more only with justification.
+Usually P-only. An integrator here fights the one in the rate loop and produces a slow oscillation that is difficult to distinguish from other faults. Start proportional and add terms only with justification.
 
 - **Wrap yaw error to [-π, π].** Use the provided `wrapPi()`. Without it, commanding -179° from +179° spins the vehicle 358° the long way instead of 2° the short way.
 - **Clamp the requested rate.** An unclamped angle error commands a rate the inner loop cannot reach, the rate integrator winds up chasing it, and recovery is violent.
