@@ -2,6 +2,7 @@
 layout: default
 title: Radio Configuration
 nav_order: 4
+has_children: true
 last_modified_at: 2026-09-08 12:00:00 -0400
 ---
 
