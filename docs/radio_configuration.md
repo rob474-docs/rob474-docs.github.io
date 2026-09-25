@@ -32,11 +32,11 @@ There are **three** separate pieces of firmware to flash, and all three must agr
 
 | Device | Firmware | What it does |
 |---|---|---|
-| Transmitter (internal TX module) | ExpressLRS 4.0.1 | The RC link itself — sticks, switches, telemetry downlink |
+| Transmitter (internal TX module) | ExpressLRS 4.0.1 | The RC link itself: sticks, switches, telemetry downlink |
 | Backpack (ESP radio inside the transmitter) | Backpack 1.5.5 | Relays telemetry to the ground station over Wi-Fi |
 | Receiver (RadioMaster XR2) | ExpressLRS 4.0.1 | The vehicle end of the RC link |
 
-The transmitter and receiver pair using a **bind phrase** — a shared secret string that replaces the traditional bind-button procedure. Configure it once at flash time, and any transmitter and receiver carrying the same phrase will link automatically.
+The transmitter and receiver pair using a **bind phrase**, a shared secret string that replaces the traditional bind-button procedure. Configure it once at flash time, and any transmitter and receiver carrying the same phrase will link automatically.
 
 {: .warning }
 > **Always power the remote controller before the vehicle.** Powering the vehicle first can leave it briefly reading an unbound or stale channel state.
@@ -57,13 +57,13 @@ Each radio and vehicle pair in the class uses its own phrase:
 | 6 | `MRobotics_UAS_06` |
 
 {: .important }
-> The bind phrase must be **byte-for-byte identical** on the transmitter, the backpack, and the receiver. It is case-sensitive, and a single missing underscore is enough to prevent the link from ever coming up — with no error message beyond a receiver that never binds. Copy and paste it rather than retyping it.
+> The bind phrase must be **byte-for-byte identical** on the transmitter, the backpack, and the receiver. It is case-sensitive, and a single missing underscore is enough to prevent the link from ever coming up, with no error message beyond a receiver that never binds. Copy and paste it rather than retyping it.
 
 ---
 
 ## Part 2: Transmitter Firmware
 
-**Reference:** [ExpressLRS quick start — RadioMaster internal TX](https://www.expresslrs.org/quick-start/transmitters/rm-internal/)
+**Reference:** [ExpressLRS quick start: RadioMaster internal TX](https://www.expresslrs.org/quick-start/transmitters/rm-internal/)
 
 ### 2.1 Build the Firmware
 
@@ -87,7 +87,7 @@ Open the **ExpressLRS Configurator** and configure the build:
   <img src="{{ '/assets/images/radio/elrs-build-success.png' | relative_url }}" alt="ExpressLRS Configurator reporting a successful build with the resulting firmware.bin revealed in a file browser" />
 </a>
 
-**Figure 3.** A successful build. The Configurator opens a file browser containing `firmware.bin` — this is the file you upload to the radio in the next step.
+**Figure 3.** A successful build. The Configurator opens a file browser containing `firmware.bin`. This is the file you upload to the radio in the next step.
 {: .fs-3 .text-grey-dk-000 }
 
 ### 2.2 Flash over Wi-Fi
@@ -127,7 +127,7 @@ The *backpack* is a second ESP-based radio inside the transmitter, separate from
 
 1. Turn on the radio.
 2. **SYS → ExpressLRS → WiFi Connectivity → Enable Backpack WiFi**
-3. Connect to the **backpack** Wi-Fi network — this is a different network from the one used in Part 2.
+3. Connect to the **backpack** Wi-Fi network. This is a different network from the one used in Part 2.
 4. Open `10.0.0.1` in a browser and upload the firmware.
 
 ---
@@ -147,7 +147,7 @@ The *backpack* is a second ESP-based radio inside the transmitter, separate from
   <img src="{{ '/assets/images/radio/elrs-rx-bindphrase.png' | relative_url }}" alt="Receiver device options with the same binding phrase as the transmitter and backpack" />
 </a>
 
-**Figure 7.** The receiver takes the **same bind phrase** again. All three — transmitter, backpack, receiver — must match.
+**Figure 7.** The receiver takes the **same bind phrase** again. All three (transmitter, backpack, receiver) must match.
 {: .fs-3 .text-grey-dk-000 }
 
 {: .important }
@@ -156,7 +156,7 @@ The *backpack* is a second ESP-based radio inside the transmitter, separate from
 ### 4.2 Flash over Wi-Fi
 
 1. **Turn the radio transmitter off**, then power the receiver.
-2. Wait for the receiver LED to indicate Wi-Fi mode — a fast flash.
+2. Wait for the receiver LED to indicate Wi-Fi mode, a fast flash.
 3. Connect your laptop to the receiver's Wi-Fi network.
 4. Open `10.0.0.1` in a browser and upload the firmware.
 
@@ -191,7 +191,7 @@ Then open the **Backpack** submenu:
 
 ### Reduce the Beeper Volume
 
-Do this while you are in the menus — these radios are loud, and a lab full of them is unbearable:
+Do this while you are in the menus, because these radios are loud, and a lab full of them is unbearable:
 
 - **SYS → RADIO SETUP**
 - Volume: about **30 %**
@@ -224,7 +224,7 @@ To display vehicle telemetry on the radio:
 {: .fs-3 .text-grey-dk-000 }
 
 {: .sanity_check }
-> Power the radio first, then the vehicle. Within a few seconds the receiver LED should go solid and the telemetry screen should show a live pack voltage — roughly 8.4 V for a freshly charged 2S pack, and about 0.8 A of current draw sitting on the ground. If the voltage field stays blank, the link is up but telemetry is not; re-run **Discover new sensors** with the vehicle powered.
+> Power the radio first, then the vehicle. Within a few seconds the receiver LED should go solid and the telemetry screen should show a live pack voltage, roughly 8.4 V for a freshly charged 2S pack, and about 0.8 A of current draw sitting on the ground. If the voltage field stays blank, the link is up but telemetry is not; re-run **Discover new sensors** with the vehicle powered.
 
 ---
 
@@ -243,7 +243,7 @@ With the link established, continue to **[Lab 2]({% link docs/labs/lab2.md %})**
 | Receiver does not start its Wi-Fi access point | Transmitter is powered on, so the receiver bound instead | Power the transmitter off, then re-power the receiver (Part 4.2) |
 | Cannot upload firmware from the Wi-Fi captive portal (macOS) | Captive portal window blocks file selection | Open `10.0.0.1` in a normal browser window |
 | Link is up but QGroundControl shows no telemetry | Link Mode not set to MAVLink | Set **Link Mode: MAVLink** in ExpressLRS Tools (Part 5) |
-| Link is up but QGroundControl shows no telemetry | Flight controller serial parameters unset | Set `SER_TEL1_BAUD`, `MAV_0_CONFIG`, `MAV_0_RATE` — see [Lab 2, Part 8]({% link docs/labs/lab2.md %}) |
+| Link is up but QGroundControl shows no telemetry | Flight controller serial parameters unset | Set `SER_TEL1_BAUD`, `MAV_0_CONFIG`, `MAV_0_RATE`; see [Lab 2, Part 8]({% link docs/labs/lab2.md %}) |
 | Telemetry screen fields stay blank | Sensors never discovered | Re-run **Discover new sensors** with the vehicle powered and linked (Part 6) |
 | Radio beeps constantly and loudly | Default volume settings | **SYS → RADIO SETUP**, reduce Volume and Beep Volume (Part 5) |
 
@@ -251,6 +251,6 @@ With the link established, continue to **[Lab 2]({% link docs/labs/lab2.md %})**
 
 ## References
 
-- [ExpressLRS quick start — RadioMaster internal TX](https://www.expresslrs.org/quick-start/transmitters/rm-internal/)
+- [ExpressLRS quick start: RadioMaster internal TX](https://www.expresslrs.org/quick-start/transmitters/rm-internal/)
 - [ExpressLRS MAVLink configuration](https://www.expresslrs.org/software/mavlink/#configuring-elrs-tx-rx-for-mavlink)
 - [ExpressLRS Configurator releases](https://github.com/ExpressLRS/ExpressLRS-Configurator/releases)
