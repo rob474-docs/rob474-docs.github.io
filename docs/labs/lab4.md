@@ -9,7 +9,7 @@ last_modified_at: 2026-09-18 12:00:00 -0400
 # Lab 4: Velocity and Position Control
 
 **Course:** Uncrewed Aerial Systems  
-**Prerequisites:** [Lab 3]({% link docs/labs/lab3.md %}) complete — your `uas_control` module flying with rate, attitude and altitude loops (`UAS_LOOP_EN = 7`), landing in your own mode; optical flow configured and verified per [Lab 2 Part 12]({% link docs/labs/lab2.md %}#part-12-configure-optical-flow)  
+**Prerequisites:** [Lab 3]({% link docs/labs/lab3.md %}) complete, with your `uas_control` module flying with rate, attitude and altitude loops (`UAS_LOOP_EN = 7`), landing in your own mode; optical flow configured and verified per [Lab 2 Part 12]({% link docs/labs/lab2.md %}#part-12-configure-optical-flow)  
 **Estimated Time:** TBD  
 **Hardware Required:**
 - Your quadrotor, with the MTF-01 optical flow / rangefinder module
@@ -44,8 +44,8 @@ The flow sensor reports how fast the image of the floor moves across its lens, i
 | Field | Frame | Meaning |
 |---|---|---|
 | `state.vx`, `state.vy` | local **NED** (north, east) | fused horizontal velocity, m/s |
-| `state.velocity_valid` | — | EKF2's `v_xy_valid`: it currently trusts this estimate |
-| `state.yaw` | — | heading, needed to relate NED to the vehicle's forward/right |
+| `state.velocity_valid` | n/a | EKF2's `v_xy_valid`: it currently trusts this estimate |
+| `state.yaw` | n/a | heading, needed to relate NED to the vehicle's forward/right |
 
 Three things follow from how the estimate is made, and every one of them will bite you at some point in this lab:
 
@@ -59,18 +59,18 @@ A velocity loop closed on a wrong-signed estimate is positive feedback: the vehi
 
 1. `UAS_LOOP_EN` unchanged from Lab 3 (`7`). Hover in Stabilized at about 1 m over a textured floor.
 2. Push the vehicle **forward** with the stick for a second, then **right**, then land.
-3. In the log, plot `vehicle_local_position.vx`, `.vy` alongside the attitude. Moving forward while pointed north must show positive `vx`; moving right, positive `vy`. If the vehicle was pointed elsewhere, rotate accordingly — or simplest, take off pointed north.
+3. In the log, plot `vehicle_local_position.vx`, `.vy` alongside the attitude. Moving forward while pointed north must show positive `vx`; moving right, positive `vy`. If the vehicle was pointed elsewhere, rotate accordingly. The simplest approach is to take off pointed north.
 4. Also plot `v_xy_valid`. It should be true for the whole hover. Where it drops, note the height and what the floor looked like.
 
 If a sign is wrong, the usual culprit is the flow sensor's mounting orientation (`SENS_FLOW_ROT`), not your code. Fix it there; do not compensate in the controller.
 
-> **A trap, learned the hard way.** You might think any flight log proves the sign: the flow velocity should change in the direction the vehicle tilts. It does — *even when the sensor is mounted backwards* — because the EKF's velocity is driven by the accelerometers between flow updates, and that test only sees the accelerometers. The instructor's vehicle passed it with `SENS_FLOW_ROT` 180° wrong, and three flights "held velocity" in the log while sliding across the room. The check that catches it is the one above — push the vehicle and look at `vx`/`vy` — or, from a log, compare the *raw* flow against the EKF: in `estimator_aid_src_optical_flow`, the observation and the EKF's prediction (`observation + innovation`) must correlate **positively**; negative means reversed, and a rejection rate above ~30 % is the same symptom. A reversed flow also makes EKF2 re-align its heading mid-flight, which a yaw-hold loop will then chase — the instructor's crashed on a 196° reset.
+> **A trap, learned the hard way.** You might think any flight log proves the sign: the flow velocity should change in the direction the vehicle tilts. It does so *even when the sensor is mounted backwards*, because the EKF's velocity is driven by the accelerometers between flow updates, and that test only sees the accelerometers. The instructor's vehicle passed it with `SENS_FLOW_ROT` 180° wrong, and three flights "held velocity" in the log while sliding across the room. The check that catches it is the one above: push the vehicle and look at `vx`/`vy`. Alternatively, from a log, compare the *raw* flow against the EKF: in `estimator_aid_src_optical_flow`, the observation and the EKF's prediction (`observation + innovation`) must correlate **positively**; negative means reversed, and a rejection rate above ~30 % is the same symptom. A reversed flow also makes EKF2 re-align its heading mid-flight, which a yaw-hold loop will then chase. On the instructor's vehicle this produced a crash after a 196° reset.
 
 ### 1.3 Implement
 
 The template walks you through it in two steps.
 
-**Step 1 — rotate the error into the body frame.** `sp.vx`, `sp.vy` and `state.vx`, `state.vy` are all NED. Your tilt commands are forward/right. Compute the velocity error in NED and rotate it by `state.yaw`:
+**Step 1: rotate the error into the body frame.** `sp.vx`, `sp.vy` and `state.vx`, `state.vy` are all NED. Your tilt commands are forward/right. Compute the velocity error in NED and rotate it by `state.yaw`:
 
 ```
 error_forward =  error_n * cos(yaw) + error_e * sin(yaw)
@@ -79,12 +79,12 @@ error_right   = -error_n * sin(yaw) + error_e * cos(yaw)
 
 Skip this and the loop works only while the vehicle points north; yaw it 90° and it corrects sideways.
 
-**Step 2 — PID each body-frame error into a tilt angle.** For small angles the horizontal acceleration is proportional to tilt, so a PID whose output you *read as an angle* is fine at these speeds. Then the signs, which are the part that bites:
+**Step 2: PID each body-frame error into a tilt angle.** For small angles the horizontal acceleration is proportional to tilt, so a PID whose output you *read as an angle* is fine at these speeds. Then the signs, which are the part that bites:
 
 - To accelerate **forward** the nose goes **down**, which is **negative pitch**: `sp.pitch` takes the *opposite* sign of `error_forward`.
 - To accelerate **right** the vehicle rolls **right**, which is **positive roll**: `sp.roll` takes the *same* sign as `error_right`.
 
-Clamp both to `±_max_tilt` (`UAS_MAX_TILT`). Start with **P only** and a small gain; a velocity loop that commands 20° for a 1 m/s error is already aggressive. Add D (on measured velocity, not error — same argument as the rate loop) if it overshoots, and a little I only if it settles with a steady drift. Respect `velocity_valid`: the template's guard commands level and resets when the estimate is not trusted. Keep it.
+Clamp both to `±_max_tilt` (`UAS_MAX_TILT`). Start with **P only** and a small gain; a velocity loop that commands 20° for a 1 m/s error is already aggressive. Add D (on measured velocity, not error, for the same reason as in the rate loop) if it overshoots, and a little I only if it settles with a steady drift. Respect `velocity_valid`: the template's guard commands level and resets when the estimate is not trusted. Keep it.
 
 ### 1.4 A switch for the loops, and what the sticks do now
 
@@ -96,31 +96,31 @@ PX4 has exactly one Offboard mode, so there is no second flight-mode slot for "O
 | centre | + altitude | 7 |
 | up | + velocity | 15 |
 
-You can move it in flight. A loop switched on mid-air starts from the vehicle's current state (the altitude loop latches the current height, the velocity loop starts clean), so stepping up is smooth; stepping down hands you back the simpler behaviour instantly. This is the same switch the gain-tuning feature (`UAS_TUNE_SEL`) uses — leave that at 0 while the loop switch is on.
+You can move it in flight. A loop switched on mid-air starts from the vehicle's current state (the altitude loop latches the current height, the velocity loop starts clean), so stepping up is smooth; stepping down hands you back the simpler behaviour instantly. This is the same switch the gain-tuning feature (`UAS_TUNE_SEL`) uses, so leave that at 0 while the loop switch is on.
 
-**The velocity loop only runs when the flow can actually see.** The module enables it only while airborne (after the automatic take-off, Lab 3 Part 8.3), above 0.2 m, with `velocity_valid` true. On the ground, during take-off, over a bad patch of floor or too high, it drops the velocity (and position) loop and the sticks go back to commanding tilt, exactly as in the centre position. QGC shows `no flow estimate, sticks are tilt`, and `flow valid, velocity/position loops on` when it comes back. Two consequences: you can **arm and take off with the switch up** — it is the same automatic take-off, the velocity loop joins as the vehicle passes 0.2 m on its way to the 0.33 m hover — and a stick you are holding for *velocity* becomes, for the duration of a dropout, a *tilt* of the same fraction. Centre the sticks when you hear the message. Do not trust PX4's `v_xy_valid` on the ground: it stayed true on the instructor's vehicle while the estimated velocity drifted to 0.7 m/s with the vehicle sitting still.
+**The velocity loop only runs when the flow can actually see.** The module enables it only while airborne (after the automatic take-off, Lab 3 Part 8.3), above 0.2 m, with `velocity_valid` true. On the ground, during take-off, over a bad patch of floor or too high, it drops the velocity (and position) loop and the sticks go back to commanding tilt, exactly as in the centre position. QGC shows `no flow estimate, sticks are tilt`, and `flow valid, velocity/position loops on` when it comes back. Two consequences: you can **arm and take off with the switch up**, because it is the same automatic take-off and the velocity loop joins as the vehicle passes 0.2 m on its way to the 0.33 m hover. Second, a stick held for *velocity* becomes, for the duration of a dropout, a *tilt* of the same fraction. Centre the sticks when you hear the message. Do not trust PX4's `v_xy_valid` on the ground: it stayed true on the instructor's vehicle while the estimated velocity drifted to 0.7 m/s with the vehicle sitting still.
 
-With the velocity loop running, the roll/pitch sticks command **velocity in the heading frame**, up to `UAS_MAX_VXY` (default 1 m/s) at full deflection; the module rotates that into NED for you. Sticks centred means zero velocity — the loop actively stops the vehicle. Throttle and yaw sticks are unchanged from Lab 3.
+With the velocity loop running, the roll/pitch sticks command **velocity in the heading frame**, up to `UAS_MAX_VXY` (default 1 m/s) at full deflection; the module rotates that into NED for you. Sticks centred means zero velocity, and the loop actively stops the vehicle. Throttle and yaw sticks are unchanged from Lab 3.
 
 ### 1.5 Bench Test
 
 Props off, loop switch **up** (or `UAS_LOOP_EN = 15`), arm in Offboard, sticks centred. The velocity setpoint is zero, so any velocity you impose by hand should produce a tilt command *opposing* it.
 
-1. `uas_control status` — confirm `velocity … valid: yes`. If it is `NO` on the bench that is normal (no flow on a static floor at 5 cm); lift the vehicle to ~0.5 m over a textured surface and it should come good within a second. Do the rest of the test at that height.
-2. Carry the vehicle **forward** at walking pace, pointed north: `listener vehicle_attitude_setpoint` (or the log) should show a **nose-up** (positive pitch) command — the loop trying to slow you down.
+1. `uas_control status`: confirm `velocity … valid: yes`. If it is `NO` on the bench that is normal (no flow on a static floor at 5 cm); lift the vehicle to ~0.5 m over a textured surface and it should come good within a second. Do the rest of the test at that height.
+2. Carry the vehicle **forward** at walking pace, pointed north: `listener vehicle_attitude_setpoint` (or the log) should show a **nose-up** (positive pitch) command, which is the loop acting to slow the vehicle.
 3. Carry it **right**: a **roll-left** (negative roll) command.
 4. Turn the vehicle to face **east** and repeat step 2. The command must still be nose-up. If it becomes a roll command, your Step 1 rotation is missing or reversed.
 
 ### 1.6 Flight Test
 
-Take off in Stabilized, hand over at a hover as in Lab 3 with the loop switch at **centre** (altitude) — confirm it still behaves. Then, in the hover, move the switch **up**.
+Take off in Stabilized, hand over at a hover as in Lab 3 with the loop switch at **centre** (altitude), and confirm it still behaves. Then, in the hover, move the switch **up**.
 
 - **Sticks centred:** the Lab 3 drift should stop. Expect a gentle correction as the loop catches the initial velocity, then a hover that stays within a metre or so, wandering slowly as the flow estimate breathes.
 - **A slow, growing sway** (period of a few seconds) is the classic velocity-loop failure: too much P for the lag in the estimate. Halve it. Flip to Stabilized if it grows past a couple of metres of travel.
 - **Stick inputs** should feel like steering a velocity: push forward, it accelerates to a speed and holds it; release, it stops.
-- **Unlearn the attitude-mode reflex.** In attitude mode you stop a drift by tilting against it — stick opposite the motion. In velocity mode that same stick means "go the other way at up to `UAS_MAX_VXY`", and the vehicle will. **Centring the stick is the brake.** The first velocity-loop flight on the instructor's vehicle "zoomed off" for exactly this reason: a backward drift, a stick pushed back, and a loop faithfully delivering −1 m/s.
-- **Gains that are too soft feel like no loop at all.** A P gain of 0.12 rad per m/s answers a 0.25 m/s drift with 1.5° of tilt — you will not notice it working. PX4 flies this airframe at `MPC_XY_VEL_P_ACC` = 1.8 m/s² per m/s, which is 0.18 rad per m/s once you divide by *g*, with an integrator ten times larger than instinct suggests. Convert PX4's gains before deciding yours are wrong.
-- **Over a bad patch of floor** `velocity_valid` will drop and the module hands you an attitude-hold vehicle (sticks are tilt) until it returns — see 1.4. Learn what that looks like.
+- **Unlearn the attitude-mode reflex.** In attitude mode you stop a drift by tilting against it, with the stick opposite the motion. In velocity mode that same stick means "go the other way at up to `UAS_MAX_VXY`", and the vehicle will. **Centring the stick is the brake.** The first velocity-loop flight on the instructor's vehicle "zoomed off" for exactly this reason: a backward drift, a stick pushed back, and a loop faithfully delivering −1 m/s.
+- **Gains that are too soft feel like no loop at all.** A P gain of 0.12 rad per m/s answers a 0.25 m/s drift with 1.5° of tilt, which you will not notice working. PX4 flies this airframe at `MPC_XY_VEL_P_ACC` = 1.8 m/s² per m/s, which is 0.18 rad per m/s once you divide by *g*, with an integrator ten times larger than instinct suggests. Convert PX4's gains before deciding yours are wrong.
+- **Over a bad patch of floor** `velocity_valid` will drop and the module hands you an attitude-hold vehicle (sticks are tilt) until it returns (see 1.4). Learn what that looks like.
 
 ### 1.7 Deliverable
 

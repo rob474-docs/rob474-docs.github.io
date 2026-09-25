@@ -16,16 +16,16 @@ last_modified_at: 2026-09-01 12:00:00 -0400
 - USB-C cable
 - RC transmitter and receiver, flashed and bound per [Radio Configuration]({% link docs/radio_configuration.md %})
 - 2S LiPo batteries, charged (for ESC calibration, motor testing and the test flights in Part 14)
-- Propellers — fitted **only** for Part 14
+- Propellers, fitted **only** for Part 14
 - Personal laptop with USB port
 
 ---
 
 ## Overview
 
-In this lab you will configure a PX4-based quadrotor from a fresh firmware state to a flight-ready system. You will set up the PX4 development toolchain, build firmware from source, flash it to the flight controller, step through all mandatory calibrations, configure flight modes, and finish with three supervised test flights — one in each of PX4's Stabilized, Altitude and Position modes.
+In this lab you will configure a PX4-based quadrotor from a fresh firmware state to a flight-ready system. You will set up the PX4 development toolchain, build firmware from source, flash it to the flight controller, step through all mandatory calibrations, configure flight modes, and finish with three supervised test flights, one in each of PX4's Stabilized, Altitude and Position modes.
 
-This lab is the third stage of bringing up the vehicle. It assumes the airframe is already built and wired ([Assembly Instructions]({% link docs/assembly_instructions.md %})) and that the ExpressLRS transmitter and receiver are already flashed and bound ([Radio Configuration]({% link docs/radio_configuration.md %})). Platform-specific values — motor geometry, battery calibration constants, and the port assignments referenced throughout — are collected in [Appendix A of the Assembly Instructions]({% link docs/assembly_instructions.md %}#appendix-a-platform-parameter-reference).
+This lab is the third stage of bringing up the vehicle. It assumes the airframe is already built and wired ([Assembly Instructions]({% link docs/assembly_instructions.md %})) and that the ExpressLRS transmitter and receiver are already flashed and bound ([Radio Configuration]({% link docs/radio_configuration.md %})). Platform-specific values (motor geometry, battery calibration constants, and the port assignments referenced throughout) are collected in [Appendix A of the Assembly Instructions]({% link docs/assembly_instructions.md %}#appendix-a-platform-parameter-reference).
 
 By the end of this lab you will have flown the vehicle on PX4's own controller in all three modes, and seen for yourself what each sensor buys you: gyro-only stabilization, then barometer/rangefinder height hold, then optical-flow position hold. In Lab 3 you replace that controller with your own.
 
@@ -78,7 +78,7 @@ The PX4 toolchain lets you build firmware from source and flash it directly to t
    cd ~/uas
    git clone --branch v1.17.0 --recursive https://github.com/PX4/PX4-Autopilot.git
    ```
-   The `--recursive` flag is required — PX4 uses many git submodules. This download is large (~3 GB) and may take several minutes. `--branch v1.17.0` pins you to the PX4 release this course is built around; the Lab 3 controller template targets this version, and cloning `main` instead will get you whatever PX4 is working on that day.
+   The `--recursive` flag is required, because PX4 uses many git submodules. This download is large (~3 GB) and may take several minutes. `--branch v1.17.0` pins you to the PX4 release this course is built around; the Lab 3 controller template targets this version, and cloning `main` instead will get you whatever PX4 is working on that day.
 
    > If the download is interrupted or a submodule fails, do not delete and re-clone. Resume it with:
    > ```bash
@@ -119,7 +119,7 @@ Save the `.bin` file to a known location on your laptop.
 
 DFU (Device Firmware Upgrade) mode allows direct low-level access to the STM32 chip, bypassing any existing firmware.
 
-> **Important:** Use a USB cable with data lines — charge-only cables will not work and the board will not appear on your computer.
+> **Important:** Use a USB cable with data lines. Charge-only cables will not work and the board will not appear on your computer.
 
 1. Unplug the USB cable from the board.
 2. **Hold the BOOT button** on the MicoAir743v2 (small button on the board, labeled BOOT).
@@ -144,7 +144,7 @@ You should see `STMicroelectronics STM32 BOOTLOADER`. If nothing appears, try a 
    sudo dfu-util -a 0 --dfuse-address 0x08000000 -D MicoAir743v2_PX4-1.16.2_Bootloader+Firmware.bin
    ```
 
-3. When complete you should see `File downloaded successfully`. Unplug and replug the USB cable — the board will reboot into PX4 firmware and appear as `/dev/ttyACM0`.
+3. When complete you should see `File downloaded successfully`. Unplug and replug the USB cable. The board will reboot into PX4 firmware and appear as `/dev/ttyACM0`.
 
 ### 3.4 Flash with STM32CubeProgrammer (Windows / macOS)
 
@@ -186,13 +186,13 @@ With the PX4 bootloader installed, you can now build firmware from source and fl
 
 4. Wait for the upload to finish. The terminal will confirm with `Erase`, `Program`, `Verify` steps followed by a success message. The board will reboot into the new firmware.
 
-> **Subsequent builds:** After the first flash, you can rebuild and reflash at any time with the same `make micoair_h743-v2_default upload` command. You do not need to re-enter DFU mode — the PX4 bootloader handles updates automatically.
+> **Subsequent builds:** After the first flash, you can rebuild and reflash at any time with the same `make micoair_h743-v2_default upload` command. You do not need to re-enter DFU mode; the PX4 bootloader handles updates automatically.
 
 ---
 
 ## Part 5: Connect to the Flight Controller
 
-> **The SD card is not optional on this board.** The MicoAir743v2 has no onboard parameter memory: every setting and calibration you make in this lab is stored in `/fs/microsd/params` on the SD card. A missing, corrupted, or half-written card means the vehicle boots with factory defaults — no calibration, no motor map, no flight modes — and PX4 plays the error tune. Two habits prevent this: **disarm and wait a few seconds before disconnecting the battery** (the logger and parameter writer are still flushing), and **back up your parameters** once everything works (**Vehicle Setup → Parameters → Tools → Save to file**). If the vehicle ever boots "uncalibrated" after it was fine, suspect the card before you recalibrate anything: `ls /fs/microsd` in the MAVLink Console should list clean filenames, and `param status` should say `file: /fs/microsd/params`.
+> **The SD card is not optional on this board.** The MicoAir743v2 has no onboard parameter memory: every setting and calibration you make in this lab is stored in `/fs/microsd/params` on the SD card. A missing, corrupted, or half-written card means the vehicle boots with factory defaults (no calibration, no motor map, no flight modes) and PX4 plays the error tune. Two habits prevent this: **disarm and wait a few seconds before disconnecting the battery** (the logger and parameter writer are still flushing), and **back up your parameters** once everything works (**Vehicle Setup → Parameters → Tools → Save to file**). If the vehicle ever boots "uncalibrated" after it was fine, suspect the card before you recalibrate anything: `ls /fs/microsd` in the MAVLink Console should list clean filenames, and `param status` should say `file: /fs/microsd/params`.
 
 1. Plug the MicoAir743v2 into your laptop with a USB-C cable.
 
@@ -203,7 +203,7 @@ With the PX4 bootloader installed, you can now build firmware from source and fl
    ```
    You should see `Bus 001 Device 005: ID 1b8c:0036 Altium Limited MicoAir743v2` and `/dev/ttyACM0`.
 
-3. Open QGroundControl. It will auto-detect the flight controller and connect — you should see the vehicle icon appear in the top bar and telemetry values update within a few seconds.
+3. Open QGroundControl. It will auto-detect the flight controller and connect. You should see the vehicle icon appear in the top bar and telemetry values update within a few seconds.
 
 4. Click the **Q** logo (top-left) → **Vehicle Setup** to enter the configuration panels.
 
@@ -289,7 +289,7 @@ After setting these parameters, **save and reboot** the flight controller (Param
 1. Power on your RC transmitter.
 2. Go to **Vehicle Setup → Radio**.
 3. Verify **Mode 2** is selected (throttle on left stick).
-4. Click **Calibrate** and follow the prompts — move each stick to its full range (all corners and extremes) as instructed.
+4. Click **Calibrate** and follow the prompts, moving each stick to its full range (all corners and extremes) as instructed.
 5. Verify the green bars respond correctly to each input:
    - **Channel 1:** Roll (right stick left/right)
    - **Channel 2:** Pitch (right stick up/down)
@@ -299,12 +299,12 @@ After setting these parameters, **save and reboot** the flight controller (Param
 
 ### 8.3 Identify Switch Channels
 
-Channels 1–4 (roll, pitch, throttle, yaw) are fixed by the Mode 2 stick layout and were confirmed in the calibration above. Channels 5 and up are auxiliary switches (SA, SB, SC, SD, ...), and **which physical switch lands on which channel number depends on your transmitter's model/mixer setup** — it is not guaranteed to match any specific lab example. You need to identify your own mapping before configuring flight modes in Part 9.
+Channels 1–4 (roll, pitch, throttle, yaw) are fixed by the Mode 2 stick layout and were confirmed in the calibration above. Channels 5 and up are auxiliary switches (SA, SB, SC, SD, ...), and **which physical switch lands on which channel number depends on your transmitter's model/mixer setup**, and is not guaranteed to match any specific lab example. You need to identify your own mapping before configuring flight modes in Part 9.
 
-1. Stay on **Vehicle Setup → Radio** (outside of the calibration wizard). Below the calibration button is a live channel monitor — one bar per channel — that updates in real time from a connected transmitter.
+1. Stay on **Vehicle Setup → Radio** (outside of the calibration wizard). Below the calibration button is a live channel monitor, one bar per channel, that updates in real time from a connected transmitter.
 2. Flip one switch at a time on your TX and watch the bars. The bar that moves identifies the channel number for that switch (e.g., "flipping SA moves the Channel 5 bar" → SA is on Channel 5).
 3. Repeat for every switch you intend to use (arm switch, flight mode switch, kill switch), and write down the channel number for each. For a 3-position switch, confirm it produces three distinct, stable bar positions (low/center/high).
-4. If your channel numbers differ from the example in Part 9 below, use your actual numbers when assigning **Mode Channel**, **Arm switch**, and **Kill Switch** — the *function* each switch performs is up to you, PX4 does not care which channel number it lives on as long as it's assigned correctly.
+4. If your channel numbers differ from the example in Part 9 below, use your actual numbers when assigning **Mode Channel**, **Arm switch**, and **Kill Switch**. The *function* each switch performs is up to you, PX4 does not care which channel number it lives on as long as it's assigned correctly.
 
 > You can also read the raw numeric value for any channel via **Analyze Tools → MAVLink Inspector → `RC_CHANNELS`** (fields `chan1_raw`...`chan18_raw`) if you want exact values instead of reading bars.
 
@@ -317,15 +317,15 @@ Configure your RC transmitter switches to select PX4 flight modes.
 > The channel numbers below (5, 6, 8) match a common ExpressLRS default layout, but **use the channel numbers you identified for your own transmitter in Part 8.3**, not necessarily these exact numbers.
 
 1. Go to **Vehicle Setup → Flight Modes**.
-2. Set **Mode Channel** to **Channel 6** (switch **SB** on the transmitter — 3-position).
+2. Set **Mode Channel** to **Channel 6** (switch **SB** on the transmitter, 3-position).
 3. PX4 divides the mode channel into **six** slots, and a 3-position switch lands on slot 1, on the *boundary between slots 3 and 4*, and on slot 6. Fill the slots in pairs so every switch position maps to exactly one mode, whichever side of the boundary the centre position falls on:
    - **Slots 1 and 2 (switch up):** Stabilized (manual stabilized, good for learning)
    - **Slots 3 and 4 (switch centre):** Altitude Control (holds altitude using barometer)
-   - **Slots 5 and 6 (switch down):** Position Control (holds position using optical flow — requires optical flow setup in Part 12)
+   - **Slots 5 and 6 (switch down):** Position Control (holds position using optical flow; requires optical flow setup in Part 12)
 
-   Then flip the switch through all three positions and watch the highlighted slot on the Flight Modes page change each time. If you fill only slots 1, 3 and 5, the centre position can land in an empty slot 4 and that mode is silently unreachable — the instructor's vehicle had no Stabilized mode for an afternoon this way.
+   Then flip the switch through all three positions and watch the highlighted slot on the Flight Modes page change each time. If you fill only slots 1, 3 and 5, the centre position can land in an empty slot 4 and that mode is silently unreachable. The instructor's vehicle had no Stabilized mode for an afternoon this way.
 4. Set **Arm switch** to **Channel 5** (switch **SA**).
-5. Set **Kill Switch** to **Channel 8** (switch **SD**) — this immediately cuts all motor output in an emergency.
+5. Set **Kill Switch** to **Channel 8** (switch **SD**). This immediately cuts all motor output in an emergency.
 
 > For initial flights in this lab, fly in **Stabilized** mode. Once the optical flow module is configured (Part 12), Position Control becomes available for indoor hover.
 
@@ -352,7 +352,7 @@ Assign motor outputs and verify spin direction before first flight.
 
    Leave **Position Z** at 0 for all four motors (they sit in the same horizontal plane as the FC).
 
-4. Verify the geometry matches the physical frame — motors should be placed at the correct arms in the diagram (front-left, front-right, rear-left, rear-right), and the on-screen quad outline should update to match the values above.
+4. Verify the geometry matches the physical frame: motors should be placed at the correct arms in the diagram (front-left, front-right, rear-left, rear-right), and the on-screen quad outline should update to match the values above.
 
 > These values are for the standard lab quadrotor frame (46 mm motor offset along each axis from the center of gravity, ~130 mm motor-to-motor diagonal). If your frame differs, measure the actual X/Y offset of each motor hub from the FC/CG and use those values instead.
 
@@ -378,11 +378,11 @@ Refer to the PX4 X-frame motor spin convention:
 ## Part 11: Battery and Power Setup
 
 1. Go to **Vehicle Setup → Power**.
-2. Set **Number of Cells (in series)** to **2** — this platform flies a 2S LiPo.
+2. Set **Number of Cells (in series)** to **2**, because this platform flies a 2S LiPo.
 3. Set **Full Voltage (per cell):** 4.20 V  
    **Empty Voltage (per cell):** 3.20 V
 4. If you have a current sensor, calibrate it by entering the measured shunt resistance. For the MicoAir743v2 onboard sensor, use the value specified in the MicoAir documentation.
-5. Set the battery failsafe (**Vehicle Setup → Safety → Battery Failsafe**, or the parameters directly): `BAT_LOW_THR` = 0.15, `BAT_CRIT_THR` = 0.07, and **`COM_LOW_BAT_ACT` = Land**. Not Return to Launch — this platform has no GPS, and the default (warning only) lets you fly the pack flat.
+5. Set the battery failsafe (**Vehicle Setup → Safety → Battery Failsafe**, or the parameters directly): `BAT_LOW_THR` = 0.15, `BAT_CRIT_THR` = 0.07, and **`COM_LOW_BAT_ACT` = Land**. Not Return to Launch, because this platform has no GPS, and the default (warning only) lets you fly the pack flat.
 
 > **Check the pack before every flight.** A 2S LiPo resting below about 7.4 V is not charged, and nothing on the vehicle will stop you taking off on it. The instructor flew a pack that had been put down uncharged: it sagged to 4.4 V in the air, the flight controller browned out mid-hover, one ESC dropped below its cutoff, and the pack was ruined. Read the voltage in QGC's toolbar (or on the charger) before you arm.
 
@@ -406,7 +406,7 @@ The MTF-01 must be configured for PX4 MAVLink output using MicoAssistant before 
    - Baud rate: **115200**
 5. Disconnect the MTF-01 from the laptop and connect it to the **TELEM2** port on the MicoAir743v2.
 
-> MicoAssistant shows motion in the sensor's *own* axes. What matters to PX4 is how those axes sit relative to the vehicle's body frame (X forward, Y right), which you declare with `SENS_FLOW_ROT` in 12.2 and **verify by hand in 12.2 step 3**. Mounted as shown in the Assembly Instructions, the module needs no rotation — but do not take that on trust. A flow sensor that is physically mounted backwards is the single most damaging misconfiguration on this platform, and it is nearly invisible: the instructor's vehicle flew several flights with the module mounted the wrong way round, the velocity estimate looked plausible in every log, and the vehicle slid across the room in every "hold". The hand-slide check in step 3 is what catches it.
+> MicoAssistant shows motion in the sensor's *own* axes. What matters to PX4 is how those axes sit relative to the vehicle's body frame (X forward, Y right), which you declare with `SENS_FLOW_ROT` in 12.2 and **verify by hand in 12.2 step 3**. Mounted as shown in the Assembly Instructions, the module needs no rotation, but do not take that on trust. A flow sensor that is physically mounted backwards is the single most damaging misconfiguration on this platform, and it is nearly invisible: the instructor's vehicle flew several flights with the module mounted the wrong way round, the velocity estimate looked plausible in every log, and the vehicle slid across the room in every "hold". The hand-slide check in step 3 is what catches it.
 
 ### 12.2 Configure PX4 Parameters for Optical Flow
 
@@ -414,19 +414,19 @@ In **Vehicle Setup → Parameters**, set the following. Parameters marked "→ T
 
 | Parameter | Value | Note |
 |---|---|---|
-| `MAV_1_CONFIG` | TELEM 2 | Route optical flow MAVLink to TELEM2 — **reboot after setting** |
+| `MAV_1_CONFIG` | TELEM 2 | Route optical flow MAVLink to TELEM2, **reboot after setting** |
 | `MAV_1_MODE` | Normal | |
 | `SER_TEL2_BAUD` | 115200 8N1 | Match MTF-01 baud rate |
 | `EKF2_OF_CTRL` | Enabled | Enable optical flow in EKF2 |
 | `EKF2_RNG_CTRL` | Enabled (conditional) | Enable rangefinder in EKF2 |
-| `EKF2_HGT_REF` | Range sensor | Use rangefinder as height reference — **reboot after setting** |
-| `SENS_FLOW_ROT` | No Rotation (value 0) | MTF-01 mounted in its default orientation, as shown in the [Assembly Instructions]({% link docs/assembly_instructions.md %}). **Verify in step 3 below** — the check tells you if yours is mounted differently |
+| `EKF2_HGT_REF` | Range sensor | Use rangefinder as height reference, **reboot after setting** |
+| `SENS_FLOW_ROT` | No Rotation (value 0) | MTF-01 mounted in its default orientation, as shown in the [Assembly Instructions]({% link docs/assembly_instructions.md %}). **Verify in step 3 below**, as the check tells you if yours is mounted differently |
 | `SENS_FLOW_MAXHGT` | 8 m | Maximum valid range of MTF-01 (indoors; see the outdoor note below) |
 | `SENS_FLOW_RATE` | 100 Hz | Sensor update rate |
 
 After setting all parameters and rebooting, verify the sensor is working in two steps:
 
-1. **Confirm raw data is streaming:** Open **Widgets → MAVLink Inspector** in QGC. Expand **`OPTICAL_FLOW_RAD`** and watch `quality` (0–255) — it should read **100+** while the sensor is held over a textured, well-lit surface, and drop toward 0 over a plain or dark surface. Slide the frame sideways by hand and confirm `integrated_x`/`integrated_y` respond. Expand **`DISTANCE_SENSOR`** and confirm `current_distance` tracks height as you raise/lower the frame, staying within the `SENS_FLOW_MAXHGT` ceiling set above.
+1. **Confirm raw data is streaming:** Open **Widgets → MAVLink Inspector** in QGC. Expand **`OPTICAL_FLOW_RAD`** and watch `quality` (0–255). It should read **100+** while the sensor is held over a textured, well-lit surface, and drop toward 0 over a plain or dark surface. Slide the frame sideways by hand and confirm `integrated_x`/`integrated_y` respond. Expand **`DISTANCE_SENSOR`** and confirm `current_distance` tracks height as you raise/lower the frame, staying within the `SENS_FLOW_MAXHGT` ceiling set above.
 2. **Confirm PX4 is actually fusing it:** Open **Analyze Tools → MAVLink Console** and run `listener estimator_status_flags`. This prints roughly 70 boolean flags covering every sensor type EKF2 knows how to fuse (magnetometer, GPS, airspeed, external vision, fixed-wing, ...). Most of them do not apply to this platform, so it's easy to get lost in the list. For this quadrotor's configuration (no magnetometer, no GPS, flow + rangefinder for height/position), only the flags below matter:
 
    | Flag | Expected value here | What it tells you |
@@ -438,19 +438,19 @@ After setting all parameters and rebooting, verify the sensor is working in two 
    | `fs_bad_optflow_x` / `fs_bad_optflow_y` | **False** | No persistent flow fault has been declared |
    | `cs_rng_fault` | **False** | No rangefinder fault |
 
-   Everything else in the list — `cs_mag_*`, `cs_gnss_*`, `cs_ev_*`, `cs_fixed_wing`, `cs_wind`, and similar — is expected to read **False** on this build. That is normal, not a sign of a problem: those flags exist for sensors and vehicle types this platform doesn't have (magnetometer, GPS, external vision, fixed-wing).
+   Everything else in the list (`cs_mag_*`, `cs_gnss_*`, `cs_ev_*`, `cs_fixed_wing`, `cs_wind`, and similar) is expected to read **False** on this build. That is normal, not a sign of a problem: those flags exist for sensors and vehicle types this platform doesn't have (magnetometer, GPS, external vision, fixed-wing).
 
-   > **Common point of confusion:** `cs_yaw_align` will also read **False**, and will stay that way. Yaw alignment normally comes from a magnetometer or a GPS heading, and this platform has neither (`SYS_HAS_MAG` = 0, `EKF2_GPS_CTRL` = 0). The vehicle still has a self-consistent heading from the gyroscope — it's just not pinned to true/magnetic north, and it will drift slowly over a long flight. This is expected behavior for a flow-only setup, not a fault to chase down.
+   > **Common point of confusion:** `cs_yaw_align` will also read **False**, and will stay that way. Yaw alignment normally comes from a magnetometer or a GPS heading, and this platform has neither (`SYS_HAS_MAG` = 0, `EKF2_GPS_CTRL` = 0). The vehicle still has a self-consistent heading from the gyroscope. It is simply not pinned to true or magnetic north, and it will drift slowly over a long flight. This is expected behavior for a flow-only setup, not a fault to chase down.
 
-   > **Another point of confusion:** `cs_opt_flow_terrain` and `cs_rng_terrain` will likely read **False** even when everything is healthy. These track a separate *terrain sub-estimator* that PX4 uses mainly when baro or GPS is the primary height source and it still needs a height-above-ground estimate on the side. Since this platform already uses the rangefinder directly as its primary height reference (`cs_rng_hgt` = True), that secondary terrain filter isn't needed and normally won't engage. Don't confuse these two with `cs_opt_flow` / `cs_rng_hgt` above — those are the ones that actually confirm the sensor chain is working.
+   > **Another point of confusion:** `cs_opt_flow_terrain` and `cs_rng_terrain` will likely read **False** even when everything is healthy. These track a separate *terrain sub-estimator* that PX4 uses mainly when baro or GPS is the primary height source and it still needs a height-above-ground estimate on the side. Since this platform already uses the rangefinder directly as its primary height reference (`cs_rng_hgt` = True), that secondary terrain filter isn't needed and normally won't engage. Don't confuse these two with `cs_opt_flow` / `cs_rng_hgt` above, which are the ones that actually confirm the sensor chain is working.
 
    > `cs_rng_kin_consistent` is a weaker guarantee than it sounds: it did not trip when the instructor's rangefinder stopped tracking at 2 m over grass and the vehicle climbed to 5 m. Treat it as "no gross fault", not "the height is right".
 
-3. **Confirm the orientation.** This is the check that matters. Props off, disarmed. In the MAVLink Console run `listener vehicle_optical_flow 30` — this is the flow *after* `SENS_FLOW_ROT` has been applied, i.e. what EKF2 sees — while you hold the vehicle about 0.5 m over a textured floor and slide it steadily **forward** (nose direction) for a second. `pixel_flow[1]` must come out **positive**. Repeat sliding it to the **right**: `pixel_flow[0]` must be **negative**. Both reversed means `SENS_FLOW_ROT` is off by 180°; forward showing up in `pixel_flow[0]` instead means off by 90°. Fix the parameter, not your expectations.
+3. **Confirm the orientation.** This is the check that matters. Props off, disarmed. In the MAVLink Console run `listener vehicle_optical_flow 30`. This is the flow *after* `SENS_FLOW_ROT` has been applied, that is, what EKF2 sees. Hold the vehicle about 0.5 m over a textured floor and slide it steadily **forward** (nose direction) for a second. `pixel_flow[1]` must come out **positive**. Repeat sliding it to the **right**: `pixel_flow[0]` must be **negative**. Both reversed means `SENS_FLOW_ROT` is off by 180°; forward showing up in `pixel_flow[0]` instead means off by 90°. Fix the parameter, not your expectations.
 
-   Do **not** use the Local Position / velocity readout for this. EKF2 blends flow with the accelerometers, so the velocity estimate follows your hand plausibly *even when the sensor is reversed* — that is exactly how the instructor's mistake stayed hidden. The raw topic cannot lie about its sign.
+   Do **not** use the Local Position / velocity readout for this. EKF2 blends flow with the accelerometers, so the velocity estimate follows your hand plausibly *even when the sensor is reversed*, which is exactly how the instructor's mistake stayed hidden. The raw topic cannot lie about its sign.
 
-> **Outdoors, stay below 1.5 m.** Over sunlit grass the MTF-01's rangefinder stops tracking at roughly 1.5 m and its readings flatten while the vehicle keeps climbing. PX4 uses that rangefinder as its height reference (`EKF2_HGT_REF`), and nothing flags the failure — the instructor's vehicle went to 5 m on a commanded 2 m. Indoors it is honest to its full 8 m.
+> **Outdoors, stay below 1.5 m.** Over sunlit grass the MTF-01's rangefinder stops tracking at roughly 1.5 m and its readings flatten while the vehicle keeps climbing. PX4 uses that rangefinder as its height reference (`EKF2_HGT_REF`), and nothing flags the failure. The instructor's vehicle went to 5 m on a commanded 2 m. Indoors it is honest to its full 8 m.
 
 ---
 
@@ -466,9 +466,9 @@ PX4 requires all pre-arm checks to pass before it will allow arming.
 | `Accel not calibrated` | Repeat Part 7.2 |
 | `RC not calibrated` | Repeat Part 8.2 |
 | `No RC signal` | Check transmitter is on and bound |
-| `GPS not locked` | This platform has no GPS — disable GPS requirement (see step 3) |
+| `GPS not locked` | This platform has no GPS; disable the GPS requirement (see step 3) |
 | `System power unavailable` / `Preflight Fail: system power` | The MicoAir743v2 does not report its 5 V rail. Set `CBRK_SUPPLY_CHK` = 894281 to disable the check |
-| Several checks fail at once after a reboot that used to be clean | Parameters did not load — see the SD card note in Part 5. Reload your saved parameter file |
+| Several checks fail at once after a reboot that used to be clean | Parameters did not load; see the SD card note in Part 5. Reload your saved parameter file |
 
 3. Disable the GPS pre-arm check since this platform has no GPS. In **Vehicle Setup → Parameters**, set `EKF2_GPS_CTRL` = 0. On older PX4 firmware the equivalent parameter is `COM_ARM_WO_GPS` = 1.
 
@@ -476,7 +476,7 @@ PX4 requires all pre-arm checks to pass before it will allow arming.
    - Switch flight mode to Stabilized.  
    - Flip the **arm switch** (SA, mapped in Part 9). Once an arm switch is mapped, PX4 ignores stick arming.  
    - Motors should begin spinning at idle. Confirm all 4 motors spin.  
-   - Flip the arm switch back to disarm. Then **wait a few seconds before pulling the battery** — the parameter and log writers are still flushing to the SD card (Part 5).
+   - Flip the arm switch back to disarm. Then **wait a few seconds before pulling the battery**, because the parameter and log writers are still flushing to the SD card (Part 5).
 
 ---
 
@@ -489,27 +489,27 @@ You have configured three modes on the left 3-position switch (SB, Part 9): **St
 ### 14.1 Before the first flight
 
 - [ ] Parts 6–13 complete; QGC status bar green with the battery connected and the transmitter on
-- [ ] Optical flow orientation verified by hand (Part 12.2 step 3) — not just "the flags are true"
+- [ ] Optical flow orientation verified by hand (Part 12.2 step 3), not just "the flags are true"
 - [ ] Battery **checked on the charger or in QGC**: 8.0 V or more for a 2S pack (Part 11)
 - [ ] Propellers fitted with the correct rotation on each motor (Part 10.2), nuts tight
-- [ ] Arm switch and **kill switch** located on the transmitter without looking — the kill switch is the only control that works whatever the software is doing
+- [ ] Arm switch and **kill switch** located on the transmitter without looking. The kill switch is the only control that works whatever the software is doing
 - [ ] Mode switch **up (Stabilized)** before arming
 - [ ] Flight area clear, net closed, GSI or instructor watching
 
-You will land after every flight. Land, disarm, **wait a few seconds**, then pick the vehicle up. Between flights, download the log (**Analyze Tools → Log Download**) — you will need all three for the deliverable.
+You will land after every flight. Land, disarm, **wait a few seconds**, then pick the vehicle up. Between flights, download the log (**Analyze Tools → Log Download**). You will need all three for the deliverable.
 
-### 14.2 Flight 1 — Stabilized
+### 14.2 Flight 1: Stabilized
 
 The gyroscope and accelerometer alone. PX4 holds the attitude you command; the throttle stick is thrust, directly.
 
 1. Arm with the arm switch. Motors idle.
-2. Raise the throttle smoothly until the vehicle lifts. It hovers somewhere near **45–50 % stick** — find it, and remember it; Lab 3 asks for it.
+2. Raise the throttle smoothly until the vehicle lifts. It hovers somewhere near **45–50 % stick**. Find it and record it; Lab 3 asks for it.
 3. Hover at about 1 m for 20–30 seconds, sticks otherwise centred.
 4. Land by lowering the throttle gently to the floor. Disarm.
 
 What you should see: the vehicle holds level when you release roll and pitch, but **nothing holds height or position**. You will be working the throttle constantly to stay at 1 m, and it will wander across the net with the sticks centred. On the instructor's airframe a hand-flown hover in Stabilized held height to about ±0.4 m. That is not a tuning problem. It is what a controller with no height and no position sensor can do, and it is the baseline for the next two flights.
 
-### 14.3 Flight 2 — Altitude
+### 14.3 Flight 2: Altitude
 
 Add the barometer and rangefinder. PX4 now closes a loop on height.
 
@@ -519,19 +519,19 @@ Add the barometer and rangefinder. PX4 now closes a loop on height.
 4. Climb to about 1.5 m, hold, descend back to 1 m.
 5. Land in Altitude mode: throttle stick fully down. The vehicle descends at a fixed rate, PX4 detects the touchdown (`Landing detected` in QGC), and the motors stop. Disarm.
 
-What you should see: height held to a few centimetres with the throttle released (the instructor's vehicle: ±5–9 cm), while the vehicle **still drifts horizontally** exactly as it did in Flight 1. If the throttle was not centred when you flipped the switch, the vehicle climbs or sinks the moment you do — flip back to Stabilized, centre it, try again.
+What you should see: height held to a few centimetres with the throttle released (the instructor's vehicle: ±5–9 cm), while the vehicle **still drifts horizontally** exactly as it did in Flight 1. If the throttle was not centred when you flipped the switch, the vehicle climbs or sinks the moment you do. Flip back to Stabilized, centre it, and try again.
 
-### 14.4 Flight 3 — Position
+### 14.4 Flight 3: Position
 
 Add the optical flow. PX4 now also closes a loop on horizontal velocity and position.
 
 1. Take off in **Stabilized**, hover at about 1 m **over a textured part of the floor** (the flow needs texture and light, and works best between 0.5 and 2 m).
 2. Centre all sticks, then flip the mode switch **down**.
 3. Hands off. Hover for 30 seconds.
-4. Push the pitch stick forward for a second and release: the vehicle moves forward at a steady speed and **stops when you release** — the sticks now command velocity, and a centred stick is a brake, not "hold level".
+4. Push the pitch stick forward for a second and release: the vehicle moves forward at a steady speed and **stops when you release**. The sticks now command velocity, and a centred stick is a brake, not "hold level".
 5. Land in Position mode as in 14.3. Disarm.
 
-What you should see: the drift is gone. The vehicle holds a spot to within a few tens of centimetres, breathing slowly as the flow estimate does. **If instead it accelerates away the moment you flip the switch, flip straight back to Stabilized** and land: that is the reversed-flow signature. The fix is the hand-slide check in Part 12.2 step 3 — a module mounted backwards, or a wrong `SENS_FLOW_ROT` — not more flying. A vehicle that yaws by itself in this mode is the same fault.
+What you should see: the drift is gone. The vehicle holds a spot to within a few tens of centimetres, breathing slowly as the flow estimate does. **If instead it accelerates away the moment you flip the switch, flip straight back to Stabilized** and land: that is the reversed-flow signature. The fix is the hand-slide check in Part 12.2 step 3, for a module mounted backwards or a wrong `SENS_FLOW_ROT`, not more flying. A vehicle that yaws by itself in this mode is the same fault.
 
 ### 14.5 Abort paths
 
@@ -553,7 +553,7 @@ Submit the following before the next lab session:
 
 1. **Screenshot** of QGC with all pre-arm checks passing (green status bar).
 2. **Screenshot** of the Sensors page showing all sensors calibrated (green checkmarks).
-3. **Three flight logs** (`.ulg`), one per mode from Part 14, and a paragraph for each describing what the vehicle did with the sticks centred — height and horizontal drift — and which sensor accounts for the difference from the flight before. Include the hover throttle you found in Flight 1.
+3. **Three flight logs** (`.ulg`), one per mode from Part 14, and a paragraph for each describing what the vehicle did with the sticks centred (height and horizontal drift) and which sensor accounts for the difference from the flight before. Include the hover throttle you found in Flight 1.
 
 ---
 
@@ -563,14 +563,14 @@ Submit the following before the next lab session:
 |---|---|---|
 | QGC won't connect | Wrong port permissions | `sudo usermod -aG dialout $USER` then re-login |
 | QGC connects then drops | FC in bootloader / power issue | Check USB cable quality; try powered hub |
-| Board not detected in DFU mode (`lsusb` shows nothing) | Charge-only USB cable | Use a data-capable USB cable — many USB-C cables carry power only |
+| Board not detected in DFU mode (`lsusb` shows nothing) | Charge-only USB cable | Use a data-capable USB cable; many USB-C cables carry power only |
 | `make upload` hangs at "Waiting for bootloader" | Board not detected | Unplug/replug USB after build completes |
 | `make upload` fails after bootloader step | Old manufacturer bootloader still present | Repeat Part 3 (DFU bootloader flash) |
 | Motors don't all spin | ESC not armed or wrong DSHOT config | Verify `DSHOT_CONFIG` parameter; check wiring |
 | Drone drifts in Stabilized | Level horizon not calibrated | Redo Level Horizon calibration (Part 7.4) |
 | Position Control drifts or won't engage | Optical flow not configured or no rangefinder lock | Verify MTF-01 wiring and repeat Part 12 |
-| Position Control **accelerates away**, or holds briefly then slides off | Flow module mounted backwards, or `SENS_FLOW_ROT` wrong — the estimate looks fine in the log | Part 12.2 step 3, the hand-slide check on `vehicle_optical_flow` |
-| Vehicle yaws by itself in Position Control | EKF2 re-aligning its heading on inconsistent flow — usually the same reversed sensor | Run the hand-slide check first |
+| Position Control **accelerates away**, or holds briefly then slides off | Flow module mounted backwards, or `SENS_FLOW_ROT` wrong, and the estimate looks fine in the log | Part 12.2 step 3, the hand-slide check on `vehicle_optical_flow` |
+| Vehicle yaws by itself in Position Control | EKF2 re-aligning its heading on inconsistent flow, usually the same reversed sensor | Run the hand-slide check first |
 | `System power unavailable` on arming | Board has no 5 V rail sense | `CBRK_SUPPLY_CHK` = 894281 (Part 13) |
 | A motor will not spin after a flight; ESC beeps | Pack over-discharged in flight | Check pack voltage; a 2S cell under 3.0 V resting is done. Set the battery failsafe (Part 11) |
 | Centre switch position does nothing / a mode is unreachable | Flight-mode slots not filled in pairs | Part 9: slots 1–2, 3–4, 5–6 |

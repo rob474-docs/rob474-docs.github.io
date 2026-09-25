@@ -24,13 +24,13 @@ last_modified_at: 2026-09-08 12:00:00 -0400
 
 ## Overview
 
-The Michigan Robotics UAS learning platform is a low-cost airframe that nonetheless shares its low-level architecture with systems currently designed in industry. It carries an STM32H743 processor running at 480 MHz under PX4 — powerful enough to host a high-level payload for advanced autonomy tasks while keeping a compact footprint and a high safety margin. A takeoff weight below 250 g keeps field operations flexible and largely unrestricted.
+The Michigan Robotics UAS learning platform is a low-cost airframe that nonetheless shares its low-level architecture with systems currently designed in industry. It carries an STM32H743 processor running at 480 MHz under PX4, with enough headroom to host a high-level payload for advanced autonomy tasks while keeping a compact footprint and a high safety margin. A takeoff weight below 250 g keeps field operations flexible and largely unrestricted.
 
 This page covers the **physical build**: assembling the frame, wiring power and motors, mounting the avionics stack, and verifying motor direction. Building the vehicle is the first of three stages:
 
-1. **Assembly** — this page.
-2. **[Radio Configuration]({% link docs/radio_configuration.md %})** — flashing and binding the ExpressLRS transmitter and receiver.
-3. **[Lab 2]({% link docs/labs/lab2.md %})** — PX4 firmware, calibration, and flight-mode configuration.
+1. **Assembly**: this page.
+2. **[Radio Configuration]({% link docs/radio_configuration.md %})**: flashing and binding the ExpressLRS transmitter and receiver.
+3. **[Lab 2]({% link docs/labs/lab2.md %})**: PX4 firmware, calibration, and flight-mode configuration.
 
 <a href="{{ '/assets/images/assembly/hero-assembled-closeup.jpg' | relative_url }}" class="image-link">
   <img src="{{ '/assets/images/assembly/hero-assembled-closeup.jpg' | relative_url }}" alt="Close-up of the fully assembled quadrotor showing flight controller, optical flow module and propeller guard" />
@@ -53,7 +53,7 @@ This page covers the **physical build**: assembling the frame, wiring power and 
 {: .warning }
 > Read these three rules before you touch the hardware. Each one corresponds to a failure that has already happened on this platform.
 >
-> 1. **Always remove the propellers when setting up or testing on the bench.** Every bench procedure in this document — spin direction checks, calibration, arming tests — is performed with the props off.
+> 1. **Always remove the propellers when setting up or testing on the bench.** Every bench procedure in this document (spin direction checks, calibration, arming tests) is performed with the props off.
 > 2. **Always power the remote controller before the vehicle.** Powering the vehicle first can leave it briefly reading an unbound or stale channel state.
 > 3. **Use the correct screw length for the motors.** The motor screws are the short ones. A screw that is too long will reach the windings and destroy the motor.
 
@@ -61,7 +61,7 @@ This page covers the **physical build**: assembling the frame, wiring power and 
 
 | Fastener | Length | Used for |
 |---|---|---|
-| M2 (supplied with motor) | 4 mm | Motors to frame arms — **the short screws** |
+| M2 (supplied with motor) | 4 mm | Motors to frame arms, **the short screws** |
 | M2 | 8 mm | Propeller guard (×4), landing legs (×4), battery case (×4), optical flow module (with spacers) |
 | M2 | 12 mm | Flight controller / autopilot, through the rubber dampers |
 
@@ -79,19 +79,19 @@ The two longer lengths follow from the stack-ups they have to clear:
 
 | Qty | Item | Fasteners |
 |---|---|---|
-| 1 | Frame | — |
+| 1 | Frame | n/a |
 | 4 | Motors (7200 KV) | 4× M2×4 mm each, supplied with the motor |
 | 1 | Propeller guard | 4× M2×8 mm |
 | 4 | Landing legs | 4× M2×8 mm |
 | 1 | Battery case / tray | 4× M2×8 mm |
-| 1 | Battery strap | — |
+| 1 | Battery strap | n/a |
 | 1 | MicoAir H743V2-AIO flight controller | 4× M2×12 mm |
 | 1 | MTF-01 optical flow / range module | 4× M2×8 mm + spacers |
-| 1 | RadioMaster XR2 ELRS receiver | — |
+| 1 | RadioMaster XR2 ELRS receiver | n/a |
 | 1 | Low-ESR capacitor (220 µF) | soldered |
 | 1 | XT60 power lead | soldered |
-| 1 | 2S 1500 mAh LiPo battery | — |
-| 4 | Propellers | — |
+| 1 | 2S 1500 mAh LiPo battery | n/a |
+| 4 | Propellers | n/a |
 
 ---
 
@@ -133,7 +133,7 @@ The two longer lengths follow from the stack-ups they have to clear:
 Solder the capacitor and the power lead to the flight controller's battery pads:
 
 1. Identify the **BATTERY+** and **BATTERY−** pads on the flight controller (see the port diagram in [Part 5](#part-5-port-and-pin-assignments)).
-2. Solder the **low-ESR capacitor** across the battery pads, observing polarity — the marked stripe is the negative leg.
+2. Solder the **low-ESR capacitor** across the battery pads, observing polarity. The marked stripe is the negative leg.
 3. Solder the **XT60 power lead** to the same pads: red to **BATTERY+**, black to **BATTERY−**.
 
 {: .warning }
@@ -143,7 +143,7 @@ Solder the capacitor and the power lead to the flight controller's battery pads:
   <img src="{{ '/assets/images/assembly/capacitor-soldered.jpg' | relative_url }}" alt="Close-up of the capacitor and red and black power leads soldered to the flight controller battery pads, held in helping-hands clamps" />
 </a>
 
-**Figure 6.** The capacitor and power leads soldered to the battery pads. Use helping hands to hold the board — the pads are large but the surrounding components are not, and a slipped iron here ends the build.
+**Figure 6.** The capacitor and power leads soldered to the battery pads. Use helping hands to hold the board. The pads are large but the surrounding components are not, and a slipped iron here ends the build.
 {: .fs-3 .text-grey-dk-000 }
 
 {: .note }
@@ -153,7 +153,7 @@ Solder the capacitor and the power lead to the flight controller's battery pads:
 
 ## Part 3: Motor Wiring and Spin Direction Check
 
-1. Solder each motor's three phase wires to one of the four motor pad groups (**M1**–**M4**) on the flight controller. Keep track of which physical arm you connect to which pad group — you will need that mapping when you configure actuator outputs.
+1. Solder each motor's three phase wires to one of the four motor pad groups (**M1**–**M4**) on the flight controller. Keep track of which physical arm you connect to which pad group, because you will need that mapping when you configure actuator outputs.
 2. Keep the wire runs tidy and clear of the propeller discs.
 
 <a href="{{ '/assets/images/assembly/motor-wires-connected.jpg' | relative_url }}" class="image-link">
@@ -172,7 +172,7 @@ Once all motor wires are connected, power the vehicle and test each motor's dire
 
 1. Connect the flight controller to your laptop by USB, and connect the flight battery.
 2. Enable the motor test slider and raise **one motor at a time**, slowly.
-3. Raise the throttle only as far as you need to see or feel the direction — no further.
+3. Raise the throttle only as far as you need to see or feel the direction, and no further.
 4. Note the direction of each motor against the required X-configuration pattern.
 5. To reverse a motor that spins the wrong way, **swap any two of its three phase wires**.
 
@@ -184,7 +184,7 @@ Once all motor wires are connected, power the vehicle and test each motor's dire
 {: .fs-3 .text-grey-dk-000 }
 
 {: .sanity_check }
-> Doing this now — before the propeller guard, landing legs and battery tray go on — means a phase swap is a two-minute job. Discovering a reversed motor after the vehicle is fully assembled means taking most of it apart again.
+> Doing this now, before the propeller guard, landing legs and battery tray go on, means a phase swap is a two-minute job. Discovering a reversed motor after the vehicle is fully assembled means taking most of it apart again.
 
 ---
 
@@ -212,7 +212,7 @@ Once all motor wires are connected, power the vehicle and test each motor's dire
 {: .fs-3 .text-grey-dk-000 }
 
 {: .note }
-> Mount the flow module so its two apertures point **straight down** with an unobstructed view of the ground. Anything in the field of view — a wire, a landing leg, a strap end — degrades the flow quality reading and, with it, position hold.
+> Mount the flow module so its two apertures point **straight down** with an unobstructed view of the ground. Anything in the field of view (a wire, a landing leg, a strap end) degrades the flow quality reading and, with it, position hold.
 
 4. Fit the propeller guard (4× M2×8 mm), landing legs (4× M2×8 mm), and battery tray (4× M2×8 mm).
 
@@ -226,7 +226,7 @@ Once all motor wires are connected, power the vehicle and test each motor's dire
   <img src="{{ '/assets/images/assembly/micoair-h743v2-ports.png' | relative_url }}" alt="Port diagram of the MicoAir H743V2-AIO flight controller showing motor pads, battery pads, UART headers, BOOT button, USB-C and TF card slot on both board faces" />
 </a>
 
-**Figure 11.** MicoAir H743V2-AIO port assignments, both faces. Note the locations of the **BOOT button** and **USB-C** connector — you will need both when flashing the PX4 bootloader — along with the four motor pads (M1–M4) and the battery pads.
+**Figure 11.** MicoAir H743V2-AIO port assignments, both faces. Note the locations of the **BOOT button** and **USB-C** connector, which you will need when flashing the PX4 bootloader, along with the four motor pads (M1–M4) and the battery pads.
 {: .fs-3 .text-grey-dk-000 }
 
 Peripheral connections used on this build:
@@ -250,7 +250,7 @@ The RadioMaster XR2 receiver connects to the **UART1 / TELEM1** header with a fo
 {: .fs-3 .text-grey-dk-000 }
 
 {: .warning }
-> The two UART lines must **cross**: the receiver's **TX** goes to the flight controller's **RX1**, and the receiver's **RX** to the flight controller's **TX1**. Swapping them is the most common reason a correctly flashed and bound receiver produces no channel data in QGroundControl. Check polarity on the power pair as well before the first power-up — a reversed 5 V line will destroy the receiver.
+> The two UART lines must **cross**: the receiver's **TX** goes to the flight controller's **RX1**, and the receiver's **RX** to the flight controller's **TX1**. Swapping them is the most common reason a correctly flashed and bound receiver produces no channel data in QGroundControl. Check polarity on the power pair as well before the first power-up. A reversed 5 V line will destroy the receiver.
 
 Flashing and binding the receiver is covered on the [Radio Configuration]({% link docs/radio_configuration.md %}) page.
 
@@ -260,8 +260,8 @@ Flashing and binding the receiver is covered on the [Radio Configuration]({% lin
 
 The vehicle is now built. Continue with:
 
-1. **[Radio Configuration]({% link docs/radio_configuration.md %})** — flash and bind the ExpressLRS transmitter, backpack, and receiver, and set up the telemetry screen.
-2. **[Lab 2]({% link docs/labs/lab2.md %})** — QGroundControl, the PX4 toolchain, firmware, sensor calibration, flight modes, actuator assignment, power configuration, and optical flow.
+1. **[Radio Configuration]({% link docs/radio_configuration.md %})**: flash and bind the ExpressLRS transmitter, backpack, and receiver, and set up the telemetry screen.
+2. **[Lab 2]({% link docs/labs/lab2.md %})**: QGroundControl, the PX4 toolchain, firmware, sensor calibration, flight modes, actuator assignment, power configuration, and optical flow.
 
 Use the values in [Appendix A](#appendix-a-platform-parameter-reference) for the settings specific to this platform.
 
@@ -277,12 +277,12 @@ These are the parameter values recorded from a known-flying reference build. Use
 | `MAV_TYPE` | 2 (Generic Quadrotor) | Airframe type |
 | `SENS_BOARD_ROT` | 8 (Roll 180°) | Flight controller mounting orientation |
 | `BAT1_N_CELLS` | 2 | 2S battery |
-| `BAT1_A_PER_V` | 12.14 | Per board specs — **see note below** |
-| `BAT1_V_DIV` | 21.12 | Per board specs — **see note below** |
+| `BAT1_A_PER_V` | 12.14 | Per board specs, **see note below** |
+| `BAT1_V_DIV` | 21.12 | Per board specs, **see note below** |
 | `MAV_0_CONFIG` | 101 (TELEM 1) | MAVLink over the ELRS link |
 | `SER_TEL1_BAUD` | 460800 | ELRS MAVLink baud rate |
 | `MAV_0_RATE` | 9600 B/s | Rate limit to fit ELRS bandwidth |
-| `PWM_MAIN_TOIM0` | −6 (BDShot600) | Motor output protocol — **see note below** |
+| `PWM_MAIN_TOIM0` | −6 (BDShot600) | Motor output protocol, **see note below** |
 
 Battery voltage and cell limits from the reference build:
 
@@ -351,5 +351,5 @@ Observations from that flight:
 
 - [MicoAir H743V2-AIO flight controller](https://micoair.com/flightcontroller_micoair743v2_aio_45a/)
 - [MicoAir MTF-01 optical flow / range sensor](https://micoair.com/optical_range_sensor_mtf-01/)
-- [PX4 flight log analysis](https://logs.px4.io/) — upload logs downloaded via **Analyze Tools → MAVLink Log**
-- [Sample flight log](https://logs.px4.io/plot_app?log=3ec9425e-2e2b-48c8-8503-fd58eade03df) — brief indoor flight in position hold, maiden flight with optical flow
+- [PX4 flight log analysis](https://logs.px4.io/): upload logs downloaded via **Analyze Tools → MAVLink Log**
+- [Sample flight log](https://logs.px4.io/plot_app?log=3ec9425e-2e2b-48c8-8503-fd58eade03df): brief indoor flight in position hold, maiden flight with optical flow
