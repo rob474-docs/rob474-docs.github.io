@@ -5,7 +5,7 @@ gem "webrick"   # required by `jekyll serve` on Ruby >= 3
 
 # If you have any plugins, put them here!
 group :jekyll_plugins do
-  gem "jekyll-remote-theme"
+  gem "jekyll-remote-theme", "~> 0.4.3"  # 0.5+ pulls in the openssl gem, which needs libssl-dev to compile
   gem "jekyll-last-modified-at"
 
   # Runtime dependencies of the just-the-docs theme. Because the theme is
