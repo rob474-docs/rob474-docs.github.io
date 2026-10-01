@@ -208,18 +208,47 @@ Read `VehicleState.hpp` first. It defines every variable you have access to and 
 
 Your module activates on one `nav_state`: **Offboard** (`UAS_MODE_SLOT` = 14).
 
-1. In QGC, go to **Vehicle Setup → Flight Modes**.
-2. Using the mode channel you identified in [Lab 2 Part 8.3]({% link docs/labs/lab2.md %}#83-identify-switch-channels), set one switch position to **Offboard**.
-3. Keep the other two positions as **Stabilized** and **Altitude**. These are the recovery modes, and they remain available while your module is active; see 4.1 for why.
-4. Confirm your **Kill Switch** ([Lab 2 Part 9]({% link docs/labs/lab2.md %}#part-9-flight-modes)) still works. It cuts motor output below the flight-control layer, so it works even if your code is in a tight loop doing something catastrophic.
+This lab uses two switches. The **left switch** selects the PX4 flight mode, replacing the assignment you used for the Lab 2 test flights. The **right switch** selects how much of your own cascade runs once you are in Offboard.
 
-> **Know your two abort paths before you arm anything:** flip the mode switch (returns to PX4's controller), or hit the kill switch (cuts all motor output). Practice reaching both without looking.
+### Left switch: flight mode
+
+In QGC, go to **Vehicle Setup → Flight Modes**, and using the mode channel you identified in [Lab 2 Part 8.3]({% link docs/labs/lab2.md %}#83-identify-switch-channels), fill the six slots in pairs:
+
+| Switch | Slots | Mode | Purpose |
+|---|---|---|---|
+| Down | 1, 2 | **Stabilized** | Recovery, and the mode you arm in |
+| Centre | 3, 4 | **Position** | PX4's own position hold, the reference your controller is measured against |
+| Up | 5, 6 | **Offboard** | Your module |
+
+Slots must be filled in pairs, for the reason given in [Lab 2 Part 9]({% link docs/labs/lab2.md %}#part-9-flight-modes).
+
+> **Verify which end of the switch is which.** Whether the down position maps to slots 1 and 2 or to slots 5 and 6 depends on your transmitter's channel direction. Move the switch through all three positions and confirm the mode readout matches the table before you fly. If it is reversed, swap the slot values rather than rewiring the transmitter. Getting this backwards means that flipping the switch to recover puts you *into* your own controller instead of out of it.
+
+### Right switch: which loops run
+
+Map a spare 3-position switch to an AUX channel (`RC_MAP_AUX1` = its channel number) and set `UAS_LOOP_SW = 1`. While you are in Offboard, that switch selects:
+
+| Switch | Loops | Behaviour |
+|---|---|---|
+| Down | rate + attitude | Your stabilized mode. Sticks command tilt, throttle is thrust |
+| Centre | + altitude | Holds height, you fly the position |
+| Up | `UAS_LOOP_EN` | Whatever you have enabled. In this lab set it to 7, so up and centre match; Lab 4 raises it to 31 for position hold |
+
+Confirm the sense the same way, by watching `loops enabled` in `uas_control status` as you move the switch.
+
+### Kill switch
+
+Confirm your **Kill Switch** ([Lab 2 Part 9]({% link docs/labs/lab2.md %}#part-9-flight-modes)) still works. It cuts motor output below the flight-control layer, so it works even if your code is in a tight loop doing something catastrophic.
+
+> **Know your two abort paths before you arm anything:** move the left switch away from Offboard (returns to PX4's controller), or hit the kill switch (cuts all motor output). Practice reaching both without looking.
+
+> **You cannot arm in Offboard.** PX4 refuses to arm by switch in any non-manual mode, and answers `Arming denied: switch to manual mode first`. **Arm in Stabilized**, then move the left switch to Offboard while still on the ground. Your module engages with the motors at idle and waits for the throttle.
 
 ### 4.1 Why Offboard, and How PX4 Gets Out of Your Way
 
 Your module publishes to `vehicle_torque_setpoint` and `vehicle_thrust_setpoint`. So does PX4's own `mc_rate_control`. Two publishers writing the same topic means the control allocator reads whichever arrived most recently, an interleaved mixture of two controllers, which is worse than either one alone.
 
-Naively you would fix this by stopping PX4's controllers. That works, but it also disables Stabilized and Altitude, so you would be flying with no way back except a reboot you cannot perform in the air.
+Naively you would fix this by stopping PX4's controllers. That works, but it also disables Stabilized and Position, so you would be flying with no way back except a reboot you cannot perform in the air.
 
 Offboard mode solves it properly. The `offboard_control_mode` message is how a controller outside the flight stack declares **which level** of the control stack it intends to command. Your module publishes it continuously with `thrust_and_torque` set:
 
@@ -227,7 +256,7 @@ Offboard mode solves it properly. The `offboard_control_mode` message is how a c
 ocm.thrust_and_torque = true;   // everything else false
 ```
 
-That tells PX4 to bypass its own position, attitude, and rate loops. `mc_att_control` and `mc_rate_control` stand down on their own while Offboard is active, and resume the instant you switch out. Nothing to stop, nothing to restart, and Stabilized and Altitude stay live the whole time.
+That tells PX4 to bypass its own position, attitude, and rate loops. `mc_att_control` and `mc_rate_control` stand down on their own while Offboard is active, and resume the instant you switch out. Nothing to stop, nothing to restart, and Stabilized and Position stay live the whole time.
 
 Two consequences worth understanding:
 
@@ -410,7 +439,7 @@ The module tells you the pilot's intent: `sp.land` is true while the throttle st
 
 You will know it works when you can land in Offboard, see `Landing detected` in QGC, and disarm with the switch, without reaching for Stabilized or the kill switch.
 
-> **Taking off is not your job.** The module handles it: on the ground in altitude mode the motors idle and your controller is not called; pushing the throttle above 60 % flies an automatic take-off, stepping thrust to 1.12 × `UAS_HOVER_THR` until the rangefinder shows half of `UAS_TKO_ALT`, then hands your loop the vehicle with `UAS_TKO_ALT` (0.33 m) as its target and the integrator reset. **Centre the throttle**: it is ignored until you do, then it works as in flight. When PX4's land detector sees your landing complete, the module is back on the ground and the next throttle-up takes off again. Watch for `take-off to 0.33 m` and `airborne, target 0.33 m` in QGC. Why the rangefinder and not the EKF's `vz` here: at lift-off the barometer sits in the prop wash and `vz` has read 2 m/s *down* with the vehicle 10 cm up. The module also learns the airframe's steady roll/pitch torque in hover (`UAS_TRIM_ROLL`, `UAS_TRIM_PITCH`, saved on landing) and feeds it forward, so a take-off does not have to wait for your rate integrator to re-learn the trim. Without it the instructor's airframe, whose CG sits a little aft, left the ground 12° nose-up every time.
+> **Taking off is not your job.** The module handles it: on the ground in altitude mode the motors idle and your controller is not called; arming in Stabilized, switching to Offboard on the ground, and pushing the throttle above 60 % flies an automatic take-off, stepping thrust to 1.12 × `UAS_HOVER_THR` until the rangefinder shows half of `UAS_TKO_ALT`, then hands your loop the vehicle with `UAS_TKO_ALT` (0.33 m) as its target and the integrator reset. **Centre the throttle**: it is ignored until you do, then it works as in flight. When PX4's land detector sees your landing complete, the module is back on the ground and the next throttle-up takes off again. Watch for `take-off to 0.33 m` and `airborne, target 0.33 m` in QGC. Why the rangefinder and not the EKF's `vz` here: at lift-off the barometer sits in the prop wash and `vz` has read 2 m/s *down* with the vehicle 10 cm up. The module also learns the airframe's steady roll/pitch torque in hover (`UAS_TRIM_ROLL`, `UAS_TRIM_PITCH`, saved on landing) and feeds it forward, so a take-off does not have to wait for your rate integrator to re-learn the trim. Without it the instructor's airframe, whose CG sits a little aft, left the ground 12° nose-up every time.
 
 ### 8.4 Bench Test
 
@@ -470,7 +499,7 @@ Fly in this order, one step per flight, landing between each. (If you have a spa
 
 1. `UAS_LOOP_EN = 1`: rate only. Expect to work the sticks constantly; this is normal, rate mode has no self-leveling.
 2. `UAS_LOOP_EN = 3`: add attitude. Release the sticks and the vehicle should self-level.
-3. `UAS_LOOP_EN = 7`: add altitude. Once the hover in step 2 is solid, **arm on the ground in Offboard** and push the throttle above 60 %: the module's automatic take-off (8.3) lifts the vehicle and hands it to your loop with 0.33 m as the target. Centre the throttle. It should settle and hold height; push up or down and it climbs or descends at up to `UAS_MAX_VZ`, never above `UAS_MAX_ALT`. Stick fully down descends; near the floor your landing logic (8.3) takes over and the disarm switch works. Take-off and landing in your own mode are both expected at this stage.
+3. `UAS_LOOP_EN = 7`: add altitude. Once the hover in step 2 is solid, **arm in Stabilized, move the left switch to Offboard on the ground**, then push the throttle above 60 %: the module's automatic take-off (8.3) lifts the vehicle and hands it to your loop with 0.33 m as the target. Centre the throttle. It should settle and hold height; push up or down and it climbs or descends at up to `UAS_MAX_VZ`, never above `UAS_MAX_ALT`. Stick fully down descends; near the floor your landing logic (8.3) takes over and the disarm switch works. Take-off and landing in your own mode are both expected at this stage.
 
 That is the end point for this lab. The vehicle will still drift horizontally with the sticks centered, because nothing is closing a loop on horizontal velocity yet, so it holds attitude and height but not position. **This is correct behavior, not a bug.** Lab 4 fixes it.
 
@@ -511,6 +540,8 @@ Start conservative and increase. These oscillation signatures apply to any casca
 | Module won't build | `CONFIG_MODULES_UAS_CONTROL=y` missing | Check `boards/micoair/h743-v2/default.px4board` (Part 2, step 4) |
 | Build error on a uORB field name | PX4 API drift between versions | Check actual field names in `~/uas/PX4-Autopilot/msg/` |
 | `uas_control: command not found` | Module not built into firmware | Rebuild and reflash after the board config change |
+| `Arming denied: switch to manual mode first` | PX4 refuses switch-arming in any non-manual mode, Offboard included | Arm in Stabilized, then switch to Offboard on the ground (Part 4) |
+| Moving the mode switch to recover puts you *into* your module | Slot order reversed for your transmitter | Swap the slot values so Offboard is on the intended position (Part 4) |
 | `git push` to the module repo is rejected | You cloned the course copy, not your team's fork | `git remote -v`; `origin` must be your group (Part 2, steps 1–3) |
 | `active: no` while armed in your mode | Mode slot mismatch | Confirm `UAS_MODE_SLOT` = 14 and the switch position is assigned to Offboard (Part 4) |
 | Motors don't respond, state looks fine | Rate loop not enabled | `UAS_LOOP_EN` must have bit 0 set |
