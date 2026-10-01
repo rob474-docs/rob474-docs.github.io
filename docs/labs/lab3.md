@@ -212,17 +212,17 @@ This lab uses two switches. The **left switch** selects the PX4 flight mode, rep
 
 ### Left switch: flight mode
 
-In QGC, go to **Vehicle Setup → Flight Modes**, and using the mode channel you identified in [Lab 2 Part 8.3]({% link docs/labs/lab2.md %}#83-identify-switch-channels), fill the six slots in pairs:
+You already assigned this switch in [Lab 2 Part 9]({% link docs/labs/lab2.md %}#part-9-flight-modes). Two of the three positions change here. In QGC, go to **Vehicle Setup → Flight Modes** and reassign:
 
-| Switch | Slots | Mode | Purpose |
+| Switch | Slots | Lab 2 | Now |
 |---|---|---|---|
-| Down | 1, 2 | **Stabilized** | Recovery, and the mode you arm in |
-| Centre | 3, 4 | **Position** | PX4's own position hold, the reference your controller is measured against |
-| Up | 5, 6 | **Offboard** | Your module |
+| Stabilized end | 1, 2 | Stabilized | **Stabilized** (unchanged) |
+| Centre | 3, 4 | Altitude | **Position** |
+| Far end | 5, 6 | Position | **Offboard** |
 
-Slots must be filled in pairs, for the reason given in [Lab 2 Part 9]({% link docs/labs/lab2.md %}#part-9-flight-modes).
+Altitude mode is dropped because your own module provides altitude hold from Part 8 onward. PX4's Position mode moves to the centre, where it stays available as the reference your controller is measured against. Keep filling the slots in pairs.
 
-> **Verify which end of the switch is which.** Whether the down position maps to slots 1 and 2 or to slots 5 and 6 depends on your transmitter's channel direction. Move the switch through all three positions and confirm the mode readout matches the table before you fly. If it is reversed, swap the slot values rather than rewiring the transmitter. Getting this backwards means that flipping the switch to recover puts you *into* your own controller instead of out of it.
+> **Confirm which physical position is which before you fly.** Which end maps to slots 1 and 2 depends on your transmitter's channel direction, which is why the table above names the ends by their mode rather than up and down. Move the switch through all three positions and check the mode readout. Stabilized must stay on the end you instinctively reach for, because flipping into your own module when you meant to escape it is the one mistake here that bites.
 
 ### Right switch: which loops run
 

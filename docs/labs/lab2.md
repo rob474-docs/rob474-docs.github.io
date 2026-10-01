@@ -319,9 +319,11 @@ Configure your RC transmitter switches to select PX4 flight modes.
 1. Go to **Vehicle Setup → Flight Modes**.
 2. Set **Mode Channel** to **Channel 6** (switch **SB** on the transmitter, 3-position).
 3. PX4 divides the mode channel into **six** slots, and a 3-position switch lands on slot 1, on the *boundary between slots 3 and 4*, and on slot 6. Fill the slots in pairs so every switch position maps to exactly one mode, whichever side of the boundary the centre position falls on:
-   - **Slots 1 and 2 (switch up):** Stabilized (manual stabilized, good for learning)
-   - **Slots 3 and 4 (switch centre):** Altitude Control (holds altitude using barometer)
-   - **Slots 5 and 6 (switch down):** Position Control (holds position using optical flow; requires optical flow setup in Part 12)
+   - **Slots 1 and 2:** Stabilized (manual stabilized, good for learning)
+   - **Slots 3 and 4:** Altitude Control (holds altitude using barometer)
+   - **Slots 5 and 6:** Position Control (holds position using optical flow; requires optical flow setup in Part 12)
+
+   On the course transmitter this puts **Stabilized at the bottom, Altitude in the centre and Position at the top**, but which physical end maps to slot 1 depends on the channel direction, so confirm it rather than assuming. Flip the switch through all three positions and watch the highlighted slot on the Flight Modes page. Keep Stabilized on the end you will reach for to recover.
 
    Then flip the switch through all three positions and watch the highlighted slot on the Flight Modes page change each time. If you fill only slots 1, 3 and 5, the centre position can land in an empty slot 4 and that mode is silently unreachable. The instructor's vehicle had no Stabilized mode for an afternoon this way.
 4. Set **Arm switch** to **Channel 5** (switch **SA**).
@@ -526,7 +528,7 @@ What you should see: height held to a few centimetres with the throttle released
 Add the optical flow. PX4 now also closes a loop on horizontal velocity and position.
 
 1. Take off in **Stabilized**, hover at about 1 m **over a textured part of the floor** (the flow needs texture and light, and works best between 0.5 and 2 m).
-2. Centre all sticks, then flip the mode switch **down**.
+2. Centre all sticks, then flip the mode switch to **Position** (the end opposite Stabilized).
 3. Hands off. Hover for 30 seconds.
 4. Push the pitch stick forward for a second and release: the vehicle moves forward at a steady speed and **stops when you release**. The sticks now command velocity, and a centred stick is a brake, not "hold level".
 5. Land in Position mode as in 14.3. Disarm.
@@ -539,7 +541,7 @@ In order of severity. Know all three before you arm.
 
 | Abort | What it does | When |
 |---|---|---|
-| **Mode switch up** (Stabilized) | Drops back to attitude-only control, instantly | Anything unexpected in Altitude or Position mode. Your default reaction |
+| **Mode switch to Stabilized** | Drops back to attitude-only control, instantly | Anything unexpected in Altitude or Position mode. Your default reaction |
 | **Throttle down** | Descends and lands (Altitude / Position), or just descends (Stabilized) | You want it on the floor now |
 | **Kill switch** | Cuts all motor output, below the flight-control layer. The vehicle falls | It is heading for a person or the net at speed, or doing something violent |
 
