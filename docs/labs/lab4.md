@@ -88,13 +88,13 @@ Clamp both to `±_max_tilt` (`UAS_MAX_TILT`). Start with **P only** and a small 
 
 ### 1.4 A switch for the loops, and what the sticks do now
 
-PX4 has exactly one Offboard mode, so there is no second flight-mode slot for "Offboard with the velocity loop". Instead, put your spare 3-position switch to work: map it to an AUX channel (`RC_MAP_AUX1` = its channel number, found the same way as in Lab 2) and set `UAS_LOOP_SW = 1`. The mode switch still selects Offboard / Stabilized / Altitude; the spare switch selects how much of your cascade runs while in Offboard:
+PX4 has exactly one Offboard mode, so there is no second flight-mode slot for "Offboard with the velocity loop". The right switch you set up in [Lab 3 Part 4]({% link docs/labs/lab3.md %}#part-4-assign-your-controller-to-the-mode-switch) already does this job: the left switch selects Stabilized, Position or Offboard, and the right switch selects how much of your cascade runs while you are in Offboard. All this part changes is what the top position means, by raising `UAS_LOOP_EN` from 7 to 15:
 
 | Switch | Loops | `UAS_LOOP_EN` equivalent |
 |---|---|---|
 | down | rate + attitude | 3 |
 | centre | + altitude | 7 |
-| up | + velocity | 15 |
+| up | + velocity | `UAS_LOOP_EN`, now 15 |
 
 You can move it in flight. A loop switched on mid-air starts from the vehicle's current state (the altitude loop latches the current height, the velocity loop starts clean), so stepping up is smooth; stepping down hands you back the simpler behaviour instantly. This is the same switch the gain-tuning feature (`UAS_TUNE_SEL`) uses, so leave that at 0 while the loop switch is on.
 
