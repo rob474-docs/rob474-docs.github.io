@@ -42,15 +42,21 @@ Three things have to be true before any of that works:
 Do this once. The object persists between sessions, so check whether yours
 already exists before making a new one.
 
-**Set the vehicle down facing room +x before you create the object.** Tracker
-takes the object's zero heading from however it is pointing at creation, and
-everything downstream assumes that zero means +x. Create it facing some other
-way and your vehicle will fly at an angle to every command it is given, which is
-the one failure that reliably destroys an airframe. Room +x is marked on the
-floor; it is roughly east, and +y is roughly north.
+**Set the vehicle down facing room +y before you create the object.** Tracker
+aligns a new object's axes with the room's axes at the moment you create it, so
+the rotation it reports afterwards is the rotation *since creation*, not an
+absolute heading. The broadcaster assumes the nose was pointing along room +y,
+which is north in the vehicle's frame. Create it facing any other way and your
+vehicle flies at a fixed angle to every command it is given, which is the one
+failure that reliably destroys an airframe.
+
+The room's axes: **+y is north and +x is east**, with z up. They are marked on
+the floor. The room is not aligned to the earth's frame, so magnetic headings
+are not useful here; +y is roughly north and +x roughly east, and that is as
+precise as it needs to be.
 
 1. Put the vehicle in the middle of the capture volume, the right way up, nose
-   along room +x.
+   along room +y.
 2. In Tracker, switch to the **Objects** pane and confirm the markers on your
    vehicle appear as unlabelled markers. You need at least four.
 3. Drag a selection box around your vehicle's markers only. Check the count
@@ -81,8 +87,10 @@ the only thing that makes your airframe ignore the rest.
 
 ### If your object already exists but the heading is wrong
 
-Delete it and create it again facing +x. There is no offset to apply after the
-fact; it is a two-minute job and it is the correct fix.
+Delete it and create it again facing room +y. There is no offset to apply after
+the fact, and nothing to correct in software: it is a two-minute job in Tracker
+and it is the right fix. Confirm with the direction checks in Part 3 before you
+fly it.
 
 ---
 
@@ -252,7 +260,8 @@ vehicle is power cycled.
 |---|---|---|
 | `mocap STALE` | object not tracked, or wrong `UAS_MOCAP_ID` | check the object has a tick in Tracker and that the vehicle is in the volume |
 | `mocap STALE` for everyone | broadcaster not running, or two writers on the radio | one broadcaster only. Ask at the laptop |
-| Pose arrives but `n`/`e` are nonsense | object created facing the wrong way | delete the object and create it again facing room +x |
+| Pose arrives but `n`/`e` are nonsense | object created facing the wrong way | delete the object and create it again facing room +y (Part 1) |
+| `yaw` is out by a constant, 90 or 180 degrees | object created facing +x, or facing backwards | same fix. Tracker takes the zero heading from creation, so it can only be corrected by recreating the object |
 | Vehicle drifts away as soon as position control engages | heading error | run the five direction checks. Do not fly until they pass |
 | Pose stream dies when QGroundControl is open | QGC grabbed the radio's serial adapter | turn off QGC's serial auto-connect |
 | Plan does not start | no plan loaded, or the mode switch is not on motion capture | `plan_load.sh <OBJECT> --show` |
