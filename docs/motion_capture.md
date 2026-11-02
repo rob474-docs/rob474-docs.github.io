@@ -113,10 +113,16 @@ shares the radio between them, so the rate falls as more vehicles appear:
 
 | Vehicles tracked | Pose rate each |
 |---|---|
-| 1 | 40 Hz |
-| 2 | 24 Hz |
-| 3 | 15 Hz |
-| 4 | 12 Hz |
+| 1 | 30 Hz |
+| 2 | 17 Hz |
+| 3 | 12 Hz |
+| 4 | 9 Hz |
+
+Flight plans ride on the same radio, so the broadcaster holds some of the link
+back for them whether or not anyone has loaded one. These rates are what it
+actually sends with that reserve in place. All of them are usable: a
+back-to-back test on the course airframe found 10 Hz held position as well as
+full rate, with about 7 cm more lag along a 1 m/s leg.
 
 You do not need to restart it when you load a plan, and you do not need to
 restart it when your vehicle enters or leaves the volume.

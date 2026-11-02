@@ -279,14 +279,23 @@ The room's cameras run at 120 Hz, but 21.5 kbps is the load that holds 99.4 % at
 each. The broadcaster divides it by however many objects Tracker is currently
 tracking, and gives the airtime back when one leaves:
 
-| Vehicles tracked | Pose rate each | Total load |
-|---|---|---|
-| 1 | 40 Hz | 17.6 kbps |
-| 2 | 24 Hz | 21.1 kbps |
-| 3 | 15 Hz | 19.7 kbps |
-| 4 | 12 Hz | 21.1 kbps |
+Flight plans share the radio with the poses, so the broadcaster reserves about
+4.5 kbps for them before dividing what is left. Measured through
+`mocap_stream.sh` against a 120 Hz capture, with that reserve in place:
 
-Forty Hz for one vehicle is well above what a position loop needs. Loss at these
+| Vehicles tracked | Frames per pose | Pose rate each | Poses on the wire |
+|---|---|---|---|
+| 1 | 4 | 30 Hz | 13.2 kbps |
+| 2 | 7 | 17 Hz | 15.1 kbps |
+| 3 | 10 | 12 Hz | 15.8 kbps |
+| 4 | 13 | 9 Hz | 16.3 kbps |
+
+Add the plan reserve and each row sits just inside the 21.5 kbps budget. The
+rate is snapped to a whole number of capture frames, because a pose can only go
+out on a frame that arrived, which is why the rates are not exactly the budget
+share.
+
+Thirty Hz for one vehicle is well above what a position loop needs. Loss at these
 rates is a fixed per-packet probability rather than a bandwidth effect: halving
 the rate from 50 to 25 Hz did not change the percentage delivered. Twelve Hz is
 usable too. A back-to-back comparison on the course airframe measured the same
