@@ -131,34 +131,50 @@ The consequence that matters most: **z is positive downward.** A vehicle 2 m abo
 
    > **If the template is updated during the term**, pull the change into your fork rather than re-cloning: add the course copy as a second remote once, `git remote add upstream https://gitlab.eecs.umich.edu/rob474-f26/uas_control.git`, then `git pull upstream main` when we tell you there is something to take. Your commits stay where they are.
 
-4. Enable the module for your board. Open the board config:
+4. **Install the PX4 tree changes.** Cloning the module is not enough to build
+   it. PX4 keeps uORB message definitions, the MAVLink dialect, the board
+   configuration and the startup script outside any module, and this module
+   needs all four. The module ships a script that puts them in place:
+
    ```bash
-   ~/uas/PX4-Autopilot/boards/micoair/h743-v2/default.px4board
-   ```
-   and add this line (keep the file alphabetically sorted if it already is):
-   ```
-   CONFIG_MODULES_UAS_CONTROL=y
+   cd ~/uas/PX4-Autopilot/src/modules/uas_control/px4
+   ./install.sh
    ```
 
-5. Start the module at boot. Open the startup script:
-   ```bash
-   ~/uas/PX4-Autopilot/ROMFS/px4fmu_common/init.d/rc.mc_apps
-   ```
-   and add near the other controller starts:
-   ```
-   uas_control start
-   ```
+   It reports each item as `already` or `CHANGED`. Running it twice is safe, and
+   `./install.sh --check` reports what it would do without touching anything.
+   What it installs, and why none of it can live in the module folder:
 
-   > If you prefer to start it manually each session instead, skip this step and run `uas_control start` from the MAVLink Console. Starting at boot is more convenient; starting manually makes it obvious when your module is and is not running.
+   | Item | Without it |
+   |---|---|
+   | `msg/UasPlanItem.msg`, listed in `msg/CMakeLists.txt` | the module does not compile: it includes `uORB/topics/uas_plan_item.h`, which PX4 generates from that `.msg` |
+   | `uas.xml` in the mavlink dialect folder | `UAS_PLAN_ITEM` is undefined, so flight plans cannot be received |
+   | `CONFIG_MODULES_UAS_CONTROL=y` in the board file | the module is not built |
+   | `CONFIG_MAVLINK_DIALECT="uas"` in the board file | the course dialect is not compiled in |
+   | `uas_control start` in `rc.mc_apps` | the module is built but never starts, which looks exactly like a module that does not work |
+   | The `mavlink_receiver` patch | received plans are never decoded or republished on uORB |
 
-6. Verify it builds:
+   `px4/README.md` has the detail, including what to do if the receiver patch
+   will not apply because your PX4 revision has drifted.
+
+   > If you prefer to start the module by hand each session, delete the
+   `uas_control start` line afterwards and run it from the MAVLink Console
+   instead. Starting at boot is more convenient; starting by hand makes it
+   obvious when your module is and is not running.
+
+5. Verify it builds. **Build clean the first time**: the message list and the
+   dialect are both generated when PX4 configures, and an incremental build does
+   not pick up a new one.
    ```bash
    cd ~/uas/PX4-Autopilot
-   make micoair_h743-v2_default
+   make clean && make micoair_h743-v2_default
    ```
    The template compiles as-is, with every controller stubbed but syntactically complete. **If it does not build before you have written any code, fix that before continuing**; you do not want to be debugging build configuration and control math at the same time.
 
-7. Flash it. Nothing in this lab works until the module is actually on the board:
+   If the build cannot find `uORB/topics/uas_plan_item.h`, step 4 did not
+   complete. Run `px4/install.sh --check` and read what it reports.
+
+6. Flash it. Nothing in this lab works until the module is actually on the board:
    ```bash
    make micoair_h743-v2_default upload
    ```
