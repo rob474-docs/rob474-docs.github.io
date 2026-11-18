@@ -43,6 +43,31 @@ Nothing in the inner loops from Lab 3 changes.
 
 **File:** `VelocityController.cpp`
 
+### 1.0 Restore the two settings Lab 3 had you disable
+
+**Do this before anything else in this lab.** Lab 3 turned both off for bench
+work, and a vehicle that finished Lab 3 on the test stand still has them off.
+Neither failure looks like a parameter: one looks like a broken flow sensor, the
+other like a broken test.
+
+| Parameter | Set it to | Lab 3 turned it off because | If you leave it |
+|---|---|---|---|
+| `EKF2_OF_CTRL` | **1** | the flow velocity check refuses to arm while the airframe moves on the stand ([Lab 3 Part 6.4]({% link docs/labs/lab3.md %}#64-closing-the-loop-on-the-test-stand)) | there is no flow velocity at all. `velocity_valid` is never true, so the velocity and position loops never engage and the sticks stay as tilt, in the air as well as on the bench |
+| `COM_DISARM_PRFLT` | **-1** for the bench work in this lab, **10** before you fly | PX4 auto-disarms 10 s after arming without a take-off ([Lab 3 Part 5.1]({% link docs/labs/lab3.md %}#51-offboard-failsafe-configuration)) | at 10, the bench tests in 1.5, 3.3 and 4.3 disarm under you part way through |
+
+```
+param set EKF2_OF_CTRL 1
+param save
+```
+
+**`COM_DISARM_PRFLT` must go back to 10 before every flight test in this lab**,
+not just before the first. At -1 the vehicle will sit armed indefinitely after a
+failed take-off instead of disarming itself.
+
+Everything in Part 1 and Part 3 depends on `EKF2_OF_CTRL` being 1. Motion
+capture does not replace it: it supplies position, while flow still supplies the
+velocity estimate the loops are gated on (see 2.5).
+
 ### 1.1 What optical flow gives you, and what it does not
 
 The flow sensor reports how fast the image of the floor moves across its lens, in radians per second, about two axes. On its own that is not a velocity: a fast-moving vehicle high up and a slow one low down produce the same flow rate. EKF2 combines the flow with the **gyro** (to remove the part of the image motion caused by the vehicle rotating) and the **rangefinder** (to scale by height) and fuses the result into its velocity estimate. That is what arrives in your controller as `state.vx` and `state.vy`:
@@ -112,7 +137,7 @@ With the velocity loop running, the roll/pitch sticks command **velocity in the 
 
 Props off, loop switch **up** (or `UAS_LOOP_EN = 15`), arm in Offboard, sticks centred. The velocity setpoint is zero, so any velocity you impose by hand should produce a tilt command *opposing* it.
 
-1. `uas_control status`: confirm `velocity … valid: yes`. If it is `NO` on the bench that is normal (no flow on a static floor at 5 cm); lift the vehicle to ~0.5 m over a textured surface and it should come good within a second. Do the rest of the test at that height.
+1. `uas_control status`: confirm `velocity … valid: yes`. If it is `NO` with the vehicle sitting on the bench that is normal, because there is no flow over a static floor at 5 cm; lift the vehicle to ~0.5 m over a textured surface and it should come good within a second. Do the rest of the test at that height. **If it never comes good at height, check `EKF2_OF_CTRL` is 1** (1.0) before you suspect the sensor: with flow fusion off this reads `NO` forever and looks exactly like a hardware fault.
 2. Carry the vehicle **forward** at walking pace, pointed north: `listener vehicle_attitude_setpoint` (or the log) should show a **nose-up** (positive pitch) command, which is the loop acting to slow the vehicle.
 3. Carry it **right**: a **roll-left** (negative roll) command.
 4. Turn the vehicle to face **east** and repeat step 2. The command must still be nose-up. If it becomes a roll command, your Step 1 rotation is missing or reversed.
@@ -538,6 +563,7 @@ path and why.
 | Symptom | Likely Cause | Fix |
 |---|---|---|
 | `velocity … valid: NO` on the bench | No flow on a static floor at 5 cm | Normal. Lift to ~0.5 m over texture |
+| `velocity … valid: NO` at every height, on the bench and in the air | `EKF2_OF_CTRL` still 0 from Lab 3's test-stand work | Set it to 1 and save (1.0). This is the most common way to lose an hour on this lab |
 | `velocity_valid` drops in flight | Featureless or glossy floor, too low, too high, poor light | Fly 0.5–2 m over a textured surface; check `estimator_status_flags` `cs_opt_flow` |
 | Vehicle accelerates away when the loop is enabled | Velocity estimate sign wrong, or tilt sign wrong in your controller | Part 1.2 first (`SENS_FLOW_ROT`), then the signs in 1.3 |
 | Corrects sideways when yawed | Missing body-frame rotation | Part 1.3 Step 1 |
